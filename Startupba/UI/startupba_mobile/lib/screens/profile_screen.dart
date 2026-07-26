@@ -1,0 +1,181 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:startupba_mobile/model/user_analytics.dart';
+import 'package:startupba_mobile/providers/user_analytics_provider.dart';
+import 'package:startupba_mobile/providers/user_provider.dart';
+import 'package:startupba_mobile/screens/edit_profile_screen.dart';
+import 'package:startupba_mobile/screens/support_ticket_screen.dart';
+import 'package:startupba_mobile/screens/announcements_screen.dart';
+import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/widgets/base_image.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  UserAnalytics? _analytics;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalytics();
+  }
+
+  Future<void> _loadAnalytics() async {
+    final userId = UserProvider.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final provider = context.read<UserAnalyticsProvider>();
+      final analytics = await provider.getUserAnalytics(userId);
+      if (mounted) setState(() { _analytics = analytics; _isLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = UserProvider.currentUser;
+    if (user == null) return const Center(child: Text('Not logged in'));
+
+    final currencyFormat = NumberFormat.currency(symbol: '€', decimalDigits: 0);
+
+    return RefreshIndicator(
+      onRefresh: _loadAnalytics,
+      color: AppColors.primary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+              ),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    child: user.picture != null
+                        ? ClipOval(child: BaseImage(base64Data: user.picture, width: 76, height: 76, borderRadius: 38))
+                        : const Icon(Icons.person, size: 40, color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(user.fullName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                      if (user.isVerified) ...[const SizedBox(width: 6), const Icon(Icons.verified, color: Colors.white, size: 20)],
+                    ],
+                  ),
+                  Text(user.email, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                  const SizedBox(height: 12),
+                  if (!user.isVerified)
+                    OutlinedButton.icon(
+                      onPressed: () {/* Request verification */},
+                      icon: const Icon(Icons.verified_outlined, size: 18),
+                      label: const Text('Verify Profile'),
+                      style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: Colors.white.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Analytics
+            if (_isLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: AppColors.primary)))
+            else if (_analytics != null) ...[
+              const Text('Your Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1.8,
+                children: [
+                  _statCard('Startups', '${_analytics!.startupsCreated}', Icons.rocket_launch, AppColors.primary),
+                  _statCard('Raised', currencyFormat.format(_analytics!.totalRaised), Icons.trending_up, AppColors.success),
+                  _statCard('Donated', currencyFormat.format(_analytics!.totalDonated), Icons.volunteer_activism, AppColors.secondary),
+                  _statCard('Blog Posts', '${_analytics!.blogPostsWritten}', Icons.article, AppColors.info),
+                  _statCard('Likes', '${_analytics!.likesReceived}', Icons.favorite, AppColors.danger),
+                  _statCard('Favorites', '${_analytics!.favoritesReceived}', Icons.bookmark, AppColors.warning),
+                ],
+              ),
+            ],
+            const SizedBox(height: 24),
+            // Quick links
+            const Text('Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            _linkTile(Icons.person_outline, 'Edit Profile', () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+              setState(() {});
+            }),
+            _linkTile(Icons.support_agent_outlined, 'Support Tickets', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportTicketScreen()))),
+            _linkTile(Icons.campaign_outlined, 'Announcements', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()))),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const Spacer(),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        ],
+      ),
+    );
+  }
+
+  Widget _linkTile(IconData icon, String label, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: AppColors.border)),
+        tileColor: Colors.white,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: AppColors.primary, size: 22),
+        ),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+      ),
+    );
+  }
+}

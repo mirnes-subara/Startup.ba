@@ -1,0 +1,189 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
+import 'package:startupba_mobile/model/search_result.dart';
+import 'package:startupba_mobile/providers/auth_provider.dart';
+
+abstract class BaseProvider<T> with ChangeNotifier {
+  static String? baseUrl;
+  @protected
+  String endpoint = "";
+
+  BaseProvider(String endpoint) {
+    this.endpoint = endpoint;
+    baseUrl = const String.fromEnvironment(
+      "baseUrl",
+      defaultValue: "",
+    );
+    if (baseUrl == null || baseUrl!.isEmpty) {
+      baseUrl = dotenv.env['baseUrl'] ?? "http://10.0.2.2:5130/";
+    }
+  }
+
+  Future<T?> getById(int id) async {
+    var url = "$baseUrl$endpoint/$id";
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+
+    var response = await http.get(uri, headers: headers);
+    if (isValidResponse(response)) {
+      if (response.body.isEmpty) return null;
+      var data = jsonDecode(response.body);
+      return fromJson(data);
+    } else {
+      throw Exception("Unknown error");
+    }
+  }
+
+  Future<SearchResult<T>> get({dynamic filter}) async {
+    var url = "$baseUrl$endpoint";
+
+    if (filter != null) {
+      var queryString = getQueryString(filter);
+      url = "$url?$queryString";
+    }
+
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+    var response = await http.get(uri, headers: headers);
+
+    if (isValidResponse(response)) {
+      var data = jsonDecode(response.body);
+      var result = SearchResult<T>();
+      result.totalCount = data['totalCount'];
+      result.items = List<T>.from(data["items"].map((e) => fromJson(e)));
+      return result;
+    } else {
+      throw Exception("Unknown error");
+    }
+  }
+
+  Future<T> insert(dynamic request) async {
+    var url = "$baseUrl$endpoint";
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+    var jsonRequest = jsonEncode(request);
+    var response = await http.post(uri, headers: headers, body: jsonRequest);
+
+    if (isValidResponse(response)) {
+      var data = jsonDecode(response.body);
+      return fromJson(data);
+    } else {
+      throw Exception("Unknown error");
+    }
+  }
+
+  Future<T> update(int id, [dynamic request]) async {
+    var url = "$baseUrl$endpoint/$id";
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+    var jsonRequest = jsonEncode(request);
+    var response = await http.put(uri, headers: headers, body: jsonRequest);
+
+    if (isValidResponse(response)) {
+      var data = jsonDecode(response.body);
+      return fromJson(data);
+    } else {
+      throw Exception("Unknown error");
+    }
+  }
+
+  Future<bool> delete(int id) async {
+    var url = "$baseUrl$endpoint/$id";
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+    var response = await http.delete(uri, headers: headers);
+
+    if (response.statusCode == 204) return true;
+    if (isValidResponse(response)) {
+      if (response.body.isEmpty) return true;
+      var data = jsonDecode(response.body);
+      return data == true;
+    } else {
+      throw Exception("Unknown error");
+    }
+  }
+
+  T fromJson(data) {
+    throw Exception("Method not implemented");
+  }
+
+  bool isValidResponse(Response response) {
+    if (response.statusCode < 299) {
+      return true;
+    } else if (response.statusCode == 401) {
+      throw Exception("Please check your credentials and try again.");
+    } else {
+      String message = "Something went wrong, please try again later!";
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['message'] != null) {
+          message = body['message'].toString();
+        } else if (body is Map && body['title'] != null) {
+          message = body['title'].toString();
+        }
+      } catch (_) {}
+      throw Exception(message);
+    }
+  }
+
+  Map<String, String> createHeaders() {
+    String username = AuthProvider.username ?? "";
+    String password = AuthProvider.password ?? "";
+    String basicAuth =
+        "Basic ${base64Encode(utf8.encode('$username:$password'))}";
+
+    return {
+      "Content-Type": "application/json",
+      "Authorization": basicAuth,
+    };
+  }
+
+  String getQueryString(
+    Map params, {
+    String prefix = '&',
+    bool inRecursion = false,
+  }) {
+    String query = '';
+    params.forEach((key, value) {
+      if (inRecursion) {
+        if (key is int) {
+          key = '[$key]';
+        } else if (value is List || value is Map) {
+          key = '.$key';
+        } else {
+          key = '.$key';
+        }
+      }
+      if (value is String || value is int || value is double || value is bool) {
+        var encoded = value;
+        if (value is String) {
+          encoded = Uri.encodeComponent(value);
+        }
+        query += '$prefix$key=$encoded';
+      } else if (value is DateTime) {
+        query += '$prefix$key=${value.toIso8601String()}';
+      } else if (value is List) {
+        for (var item in value) {
+          var encoded = item;
+          if (item is String) {
+            encoded = Uri.encodeComponent(item);
+          }
+          query += '$prefix$key=$encoded';
+        }
+      } else if (value is Map) {
+        value.forEach((k, v) {
+          query += getQueryString(
+            {k: v},
+            prefix: '$prefix$key',
+            inRecursion: true,
+          );
+        });
+      }
+    });
+    return query;
+  }
+}

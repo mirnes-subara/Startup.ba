@@ -1,0 +1,38 @@
+name: startupba_mobile
+description: "Startup.ba - Crowdfunding platform for entrepreneurs and investors."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.4.0
+  provider: ^6.1.5
+  json_annotation: ^4.12.0
+  intl: ^0.20.2
+  flutter_form_builder: ^10.1.0
+  form_builder_validators: ^11.2.0
+  file_picker: ^8.3.7
+  flutter_dotenv: ^5.1.0
+  flutter_stripe: ^10.1.1
+  carousel_slider: ^4.1.1
+  fl_chart: ^0.70.0
+  pdf: ^3.11.2
+  printing: ^5.14.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  json_serializable: ^6.9.5
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
