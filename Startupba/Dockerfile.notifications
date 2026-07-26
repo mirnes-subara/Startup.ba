@@ -1,0 +1,26 @@
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+WORKDIR /src
+EXPOSE 80
+EXPOSE 443
+
+
+COPY ["Startupba.Subscriber/Startupba.Subscriber.csproj", "Startupba.Subscriber/"]
+RUN dotnet restore "Startupba.Subscriber/Startupba.Subscriber.csproj"
+
+
+COPY . .
+WORKDIR "/src/Startupba.Subscriber"
+RUN dotnet build "Startupba.Subscriber.csproj" -c Release -o /app/build
+
+
+FROM build AS publish
+RUN dotnet publish "Startupba.Subscriber.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+
+ENTRYPOINT ["dotnet", "Startupba.Subscriber.dll"]
