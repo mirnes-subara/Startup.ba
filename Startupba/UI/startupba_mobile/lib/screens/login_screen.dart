@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _usernameController =
-      TextEditingController(text: "user");
+      TextEditingController(text: "mobile");
   final TextEditingController _passwordController =
       TextEditingController(text: "test");
   bool _isPasswordVisible = false;

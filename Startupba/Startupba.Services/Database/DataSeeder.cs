@@ -13,22 +13,27 @@ namespace Startupba.Services.Database
     ///   founder2, founder3, founder4 - founders
     ///   investor1, investor2, investor3 - investors
     ///
-    /// Startup cover images are read from Startupba.WebAPI/Assets as
-    /// "startup1.jpg" ... "startup10.jpg". If a file is missing, the seeder
-    /// falls back to the existing "1.jpg" ... "9.jpg" so seeding never fails.
-    /// Drop your own startup1..10.jpg files into the Assets folder and
-    /// regenerate the migration to use them.
+    /// Startup images are read from Assets/startup pictures/{name}_promo.webp
+    /// (cover) and optionally {name}_team.webp (extra gallery image). Logos
+    /// are not seeded here.
+    ///
+    /// User profile photos are read from Assets/people photos/{male|female}/.
     /// </summary>
     public static class DataSeeder
     {
         private const string DefaultPhoneNumber = "+387 61 111 111";
+        private static readonly string MalePhotos = Path.Combine("Assets", "people photos", "male");
+        private static readonly string FemalePhotos = Path.Combine("Assets", "people photos", "female");
+        private static readonly string StartupPhotos = Path.Combine("Assets", "startup pictures");
 
-        private static byte[] StartupCover(int index)
-        {
-            // Preferred file "startup{index}.jpg", fallback to the existing template images
-            var fallback = $"{((index - 1) % 9) + 1}.jpg";
-            return ImageConversion.ConvertImageToByteArrayWithFallback("Assets", $"startup{index}.jpg", fallback);
-        }
+        private static byte[] StartupPhoto(string fileName) =>
+            ImageConversion.ConvertImageToByteArray(StartupPhotos, fileName);
+
+        private static byte[] MalePhoto(string fileName) =>
+            ImageConversion.ConvertImageToByteArray(MalePhotos, fileName);
+
+        private static byte[] FemalePhoto(string fileName) =>
+            ImageConversion.ConvertImageToByteArray(FemalePhotos, fileName);
 
         public static void SeedData(this ModelBuilder modelBuilder)
         {
@@ -166,7 +171,8 @@ namespace Startupba.Services.Database
                     CreatedAt = new DateTime(2025, 6, 1),
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
-                    CityId = 1
+                    CityId = 1,
+                    Picture = MalePhoto("m1.webp")
                 },
                 // Regular user - founder + investor (mobile app)
                 new User
@@ -184,7 +190,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 1,
-                    Picture = ImageConversion.ConvertImageToByteArray("Assets", "adil.png")
+                    Picture = MalePhoto("m2.webp")
                 },
                 new User
                 {
@@ -201,7 +207,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
                     CityId = 2,
-                    Picture = ImageConversion.ConvertImageToByteArray("Assets", "amel.png")
+                    Picture = FemalePhoto("f1.webp")
                 },
                 new User
                 {
@@ -218,7 +224,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 6,
-                    Picture = ImageConversion.ConvertImageToByteArray("Assets", "denis.png")
+                    Picture = MalePhoto("m3.webp")
                 },
                 new User
                 {
@@ -234,7 +240,8 @@ namespace Startupba.Services.Database
                     CreatedAt = new DateTime(2025, 8, 1),
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
-                    CityId = 1
+                    CityId = 1,
+                    Picture = FemalePhoto("f2.webp")
                 },
                 new User
                 {
@@ -250,7 +257,8 @@ namespace Startupba.Services.Database
                     CreatedAt = new DateTime(2025, 8, 20),
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
-                    CityId = 9
+                    CityId = 9,
+                    Picture = MalePhoto("m4.webp")
                 },
                 new User
                 {
@@ -266,7 +274,8 @@ namespace Startupba.Services.Database
                     CreatedAt = new DateTime(2025, 9, 5),
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
-                    CityId = 14
+                    CityId = 14,
+                    Picture = FemalePhoto("f3.webp")
                 },
                 new User
                 {
@@ -282,7 +291,8 @@ namespace Startupba.Services.Database
                     CreatedAt = new DateTime(2025, 9, 15),
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
-                    CityId = 11
+                    CityId = 11,
+                    Picture = MalePhoto("m5.webp")
                 }
             );
 
@@ -525,20 +535,22 @@ namespace Startupba.Services.Database
             #region Startup images
 
             modelBuilder.Entity<StartupImage>().HasData(
-                new StartupImage { Id = 1, StartupId = 1, ImageData = StartupCover(1), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 2, StartupId = 2, ImageData = StartupCover(2), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 3, StartupId = 3, ImageData = StartupCover(3), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 4, StartupId = 4, ImageData = StartupCover(4), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 5, StartupId = 5, ImageData = StartupCover(5), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 6, StartupId = 6, ImageData = StartupCover(6), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 7, StartupId = 7, ImageData = StartupCover(7), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 8, StartupId = 8, ImageData = StartupCover(8), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 9, StartupId = 9, ImageData = StartupCover(9), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 10, StartupId = 10, ImageData = StartupCover(10), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                // A couple of extra gallery images for the most funded startups
-                new StartupImage { Id = 11, StartupId = 1, ImageData = ImageConversion.ConvertImageToByteArrayWithFallback("Assets", "2.jpg"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 12, StartupId = 2, ImageData = ImageConversion.ConvertImageToByteArrayWithFallback("Assets", "5.jpg"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 13, StartupId = 3, ImageData = ImageConversion.ConvertImageToByteArrayWithFallback("Assets", "8.jpg"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate }
+                // Covers (promo)
+                new StartupImage { Id = 1, StartupId = 1, ImageData = StartupPhoto("greencycle_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 2, StartupId = 2, ImageData = StartupPhoto("paylink_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 3, StartupId = 3, ImageData = StartupPhoto("meditrack_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 4, StartupId = 4, ImageData = StartupPhoto("learnhub_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 5, StartupId = 5, ImageData = StartupPhoto("farmsense_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 6, StartupId = 6, ImageData = StartupPhoto("questforge_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 7, StartupId = 7, ImageData = StartupPhoto("staylocal_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 8, StartupId = 8, ImageData = StartupPhoto("snackwise_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 9, StartupId = 9, ImageData = StartupPhoto("cryptoboost_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 10, StartupId = 10, ImageData = StartupPhoto("rideshare_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                // Extra gallery images (team) where available
+                new StartupImage { Id = 11, StartupId = 1, ImageData = StartupPhoto("greencycle_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 12, StartupId = 2, ImageData = StartupPhoto("paylink_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 13, StartupId = 3, ImageData = StartupPhoto("meditrack_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 14, StartupId = 6, ImageData = StartupPhoto("questforge_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate }
             );
 
             #endregion
