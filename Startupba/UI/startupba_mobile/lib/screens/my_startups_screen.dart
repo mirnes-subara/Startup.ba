@@ -20,37 +20,78 @@ class MyStartupsScreen extends StatefulWidget {
   State<MyStartupsScreen> createState() => _MyStartupsScreenState();
 }
 
-class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerProviderStateMixin {
+class _MyStartupsScreenState extends State<MyStartupsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   List<Startup> _myStartups = [];
+  List<Startup> _bookmarked = [];
   List<Donation> _myDonations = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl.addListener(_onTabChanged);
     _loadData();
+  }
+
+  void _onTabChanged() {
+    // Refresh when switching to Bookmarks so unbookmarking on details is reflected.
+    if (!_tabCtrl.indexIsChanging && _tabCtrl.index == 1) {
+      _loadData();
+    }
   }
 
   @override
   void dispose() {
+    _tabCtrl.removeListener(_onTabChanged);
     _tabCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
     try {
       final startupProvider = context.read<StartupProvider>();
       final donationProvider = context.read<DonationProvider>();
-      final startups = await startupProvider.get(filter: {'founderId': userId.toString(), 'pageSize': '50'});
-      final donations = await donationProvider.get(filter: {'userId': userId.toString(), 'pageSize': '50'});
-      if (mounted) setState(() { _myStartups = startups.items; _myDonations = donations.items; _isLoading = false; });
+      final startups = await startupProvider.get(filter: {
+        'founderId': userId.toString(),
+        'pageSize': '50',
+      });
+      final favorites = await startupProvider.get(filter: {
+        'favoritedByUserId': userId.toString(),
+        'pageSize': '50',
+      });
+      final donations = await donationProvider.get(filter: {
+        'userId': userId.toString(),
+        'pageSize': '50',
+      });
+      if (mounted) {
+        setState(() {
+          _myStartups = startups.items;
+          _bookmarked = favorites.items;
+          _myDonations = donations.items;
+          _isLoading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _openStartup(int startupId) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StartupDetailsScreen(startupId: startupId),
+      ),
+    );
+    await _loadData();
   }
 
   @override
@@ -64,23 +105,34 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
         children: [
           Container(
             margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
             child: TabBar(
               controller: _tabCtrl,
-              indicator: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+              indicator: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
               labelColor: Colors.white,
               unselectedLabelColor: AppColors.textSecondary,
               indicatorSize: TabBarIndicatorSize.tab,
               dividerHeight: 0,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               tabs: [
-                Tab(text: 'My Startups (${_myStartups.length})'),
-                Tab(text: 'My Donations (${_myDonations.length})'),
+                Tab(text: 'Startups (${_myStartups.length})'),
+                Tab(text: 'Bookmarks (${_bookmarked.length})'),
+                Tab(text: 'Donations (${_myDonations.length})'),
               ],
             ),
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
                 : TabBarView(
                     controller: _tabCtrl,
                     children: [
@@ -91,10 +143,17 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                             ? EmptyState(
                                 icon: Icons.rocket_launch_outlined,
                                 title: 'No startups yet',
-                                subtitle: 'Create your first startup and start fundraising!',
+                                subtitle:
+                                    'Create your first startup and start fundraising!',
                                 action: ElevatedButton.icon(
                                   onPressed: () async {
-                                    await Navigator.push(context, MaterialPageRoute(builder: (_) => const StartupCreateScreen()));
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const StartupCreateScreen(),
+                                      ),
+                                    );
                                     _loadData();
                                   },
                                   icon: const Icon(Icons.add),
@@ -102,73 +161,38 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 itemCount: _myStartups.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
                                 itemBuilder: (context, i) {
                                   final s = _myStartups[i];
-                                  final canEdit = StartupCreateScreen.isEditableStatus(s.statusName);
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      await Navigator.push(context, MaterialPageRoute(builder: (_) => StartupDetailsScreen(startupId: s.id)));
-                                      _loadData();
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: AppColors.border),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(child: Text(s.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
-                                              StatusChip(status: s.statusName),
-                                              if (canEdit) ...[
-                                                const SizedBox(width: 4),
-                                                IconButton(
-                                                  tooltip: 'Edit',
-                                                  visualDensity: VisualDensity.compact,
-                                                  padding: EdgeInsets.zero,
-                                                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                                                  icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
-                                                  onPressed: () async {
-                                                    final changed = await Navigator.push<bool>(
-                                                      context,
-                                                      MaterialPageRoute(builder: (_) => StartupCreateScreen(startup: s)),
-                                                    );
-                                                    if (changed == true) _loadData();
-                                                  },
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(s.categoryName, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                                          const SizedBox(height: 12),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(currencyFormat.format(s.amountRaised), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
-                                              Text('of ${currencyFormat.format(s.targetAmount)}', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 6),
-                                          FundingProgressBar(percent: s.fundingPercent, height: 6, showLabel: false),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              _miniStat(Icons.favorite, s.likeCount),
-                                              _miniStat(Icons.bookmark, s.favoriteCount),
-                                              _miniStat(Icons.volunteer_activism, s.donationCount),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  return _ownedStartupCard(s, currencyFormat);
+                                },
+                              ),
+                      ),
+                      // Bookmarks
+                      RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: _bookmarked.isEmpty
+                            ? const EmptyState(
+                                icon: Icons.bookmark_border,
+                                title: 'No bookmarked startups',
+                                subtitle:
+                                    'Tap the bookmark icon on a startup to save it here.',
+                              )
+                            : ListView.separated(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: _bookmarked.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, i) {
+                                  final s = _bookmarked[i];
+                                  return _bookmarkStartupCard(
+                                    s,
+                                    currencyFormat,
                                   );
                                 },
                               ),
@@ -177,11 +201,18 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                       RefreshIndicator(
                         onRefresh: _loadData,
                         child: _myDonations.isEmpty
-                            ? const EmptyState(icon: Icons.volunteer_activism_outlined, title: 'No donations yet', subtitle: 'Support a startup you believe in!')
+                            ? const EmptyState(
+                                icon: Icons.volunteer_activism_outlined,
+                                title: 'No donations yet',
+                                subtitle:
+                                    'Support a startup you believe in!',
+                              )
                             : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 itemCount: _myDonations.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
                                 itemBuilder: (context, i) {
                                   final d = _myDonations[i];
                                   return Container(
@@ -189,32 +220,66 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: AppColors.border),
+                                      border:
+                                          Border.all(color: AppColors.border),
                                     ),
                                     child: Row(
                                       children: [
                                         Container(
-                                          width: 48, height: 48,
-                                          decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                                          child: const Icon(Icons.volunteer_activism, color: AppColors.success),
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success
+                                                .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Icon(
+                                            Icons.volunteer_activism,
+                                            color: AppColors.success,
+                                          ),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(d.startupName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                              Text(
+                                                d.startupName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
                                               const SizedBox(height: 2),
-                                              Text(dateFormat.format(d.createdAt), style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                                              Text(
+                                                dateFormat.format(d.createdAt),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[500],
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                         Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
-                                            Text(currencyFormat.format(d.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)),
+                                            Text(
+                                              currencyFormat.format(d.amount),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
                                             const SizedBox(height: 2),
-                                            StatusChip(status: d.status, fontSize: 10),
+                                            StatusChip(
+                                              status: d.status,
+                                              fontSize: 10,
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -230,11 +295,179 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (_) => const StartupCreateScreen()));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StartupCreateScreen()),
+          );
           _loadData();
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _ownedStartupCard(Startup s, NumberFormat currencyFormat) {
+    final canEdit = StartupCreateScreen.isEditableStatus(s.statusName);
+    return GestureDetector(
+      onTap: () => _openStartup(s.id),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    s.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                StatusChip(status: s.statusName),
+                if (canEdit) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Edit',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StartupCreateScreen(startup: s),
+                        ),
+                      );
+                      if (changed == true) _loadData();
+                    },
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.categoryName,
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  currencyFormat.format(s.amountRaised),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                Text(
+                  'of ${currencyFormat.format(s.targetAmount)}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            FundingProgressBar(
+              percent: s.fundingPercent,
+              height: 6,
+              showLabel: false,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _miniStat(Icons.favorite, s.likeCount),
+                _miniStat(Icons.bookmark, s.favoriteCount),
+                _miniStat(Icons.volunteer_activism, s.donationCount),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bookmarkStartupCard(Startup s, NumberFormat currencyFormat) {
+    return GestureDetector(
+      onTap: () => _openStartup(s.id),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.bookmark, size: 18, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    s.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                StatusChip(status: s.statusName),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${s.categoryName} · ${s.cityName}',
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  currencyFormat.format(s.amountRaised),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                Text(
+                  'of ${currencyFormat.format(s.targetAmount)}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            FundingProgressBar(
+              percent: s.fundingPercent,
+              height: 6,
+              showLabel: false,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _miniStat(Icons.favorite, s.likeCount),
+                _miniStat(Icons.bookmark, s.favoriteCount),
+                _miniStat(Icons.volunteer_activism, s.donationCount),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
