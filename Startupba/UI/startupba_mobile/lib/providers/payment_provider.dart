@@ -44,13 +44,13 @@ class PaymentProvider extends BaseProvider<Payment> {
     }
   }
 
-  Future<Payment> confirmPayment(int paymentId, String stripePaymentIntentId) async {
+  Future<Payment> confirmPayment(int paymentId, int donationId) async {
     var url = "${BaseProvider.baseUrl}Payment/$paymentId/confirm";
     var uri = Uri.parse(url);
     var headers = createHeaders();
 
     var body = jsonEncode({
-      "stripePaymentIntentId": stripePaymentIntentId,
+      "donationId": donationId,
     });
 
     var response = await http.put(uri, headers: headers, body: body);

@@ -28,6 +28,8 @@ class Startup {
   final int likeCount;
   final int favoriteCount;
   final int donationCount;
+  final bool isLiked;
+  final bool isFavorited;
   final String? coverImage;
 
   Startup({
@@ -55,8 +57,47 @@ class Startup {
     this.likeCount = 0,
     this.favoriteCount = 0,
     this.donationCount = 0,
+    this.isLiked = false,
+    this.isFavorited = false,
     this.coverImage,
   });
+
+  Startup copyWith({
+    int? likeCount,
+    int? favoriteCount,
+    bool? isLiked,
+    bool? isFavorited,
+  }) {
+    return Startup(
+      id: id,
+      name: name,
+      description: description,
+      founderId: founderId,
+      founderName: founderName,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      cityId: cityId,
+      cityName: cityName,
+      targetAmount: targetAmount,
+      amountRaised: amountRaised,
+      fundingPercent: fundingPercent,
+      platformFeePercent: platformFeePercent,
+      statusId: statusId,
+      statusName: statusName,
+      rejectionReason: rejectionReason,
+      isActive: isActive,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      approvedAt: approvedAt,
+      completedAt: completedAt,
+      likeCount: likeCount ?? this.likeCount,
+      favoriteCount: favoriteCount ?? this.favoriteCount,
+      donationCount: donationCount,
+      isLiked: isLiked ?? this.isLiked,
+      isFavorited: isFavorited ?? this.isFavorited,
+      coverImage: coverImage,
+    );
+  }
 
   factory Startup.fromJson(Map<String, dynamic> json) =>
       _$StartupFromJson(json);

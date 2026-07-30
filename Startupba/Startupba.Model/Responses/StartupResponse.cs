@@ -43,6 +43,16 @@ namespace Startupba.Model.Responses
         public int FavoriteCount { get; set; }
         public int DonationCount { get; set; }
 
+        /// <summary>
+        /// Whether the authenticated user has liked this startup.
+        /// </summary>
+        public bool IsLiked { get; set; }
+
+        /// <summary>
+        /// Whether the authenticated user has favorited this startup.
+        /// </summary>
+        public bool IsFavorited { get; set; }
+
         // Cover image (first cover, if any)
         public byte[]? CoverImage { get; set; }
     }

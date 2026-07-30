@@ -6,10 +6,12 @@ using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using Startupba.Subscriber.Models;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
@@ -17,10 +19,16 @@ namespace Startupba.Services.Services
     public class StartupService : BaseCRUDService<StartupResponse, StartupSearchObject, Startup, StartupUpsertRequest, StartupUpsertRequest>, IStartupService
     {
         private readonly INotificationService _notificationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public StartupService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public StartupService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         #region Query
@@ -160,6 +168,14 @@ namespace Startupba.Services.Services
             response.FavoriteCount = entity.Favorites?.Count ?? 0;
             response.DonationCount = entity.Donations?.Count(d => d.Status == "Completed") ?? 0;
 
+            var userIdClaim = _httpContextAccessor.HttpContext?.User
+                ?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                response.IsLiked = entity.StartupLikes?.Any(l => l.UserId == userId) ?? false;
+                response.IsFavorited = entity.Favorites?.Any(f => f.UserId == userId) ?? false;
+            }
+
             response.CoverImage = entity.StartupImages?
                 .Where(i => i.IsActive)
                 .OrderByDescending(i => i.IsCover)
@@ -245,6 +261,11 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeUpdate(Startup entity, StartupUpsertRequest request)
         {
+            if (entity.StatusId == StartupStatuses.Completed)
+            {
+                throw new InvalidOperationException("Completed startups cannot be edited.");
+            }
+
             if (!await _context.Users.AnyAsync(u => u.Id == request.FounderId))
             {
                 throw new InvalidOperationException("Founder does not exist.");
@@ -265,6 +286,23 @@ namespace Startupba.Services.Services
         {
             base.MapUpdateToEntity(entity, request);
             entity.UpdatedAt = DateTime.Now;
+
+            // Resubmit rejected startups for admin review after founder edits
+            if (entity.StatusId == StartupStatuses.Rejected)
+            {
+                entity.StatusId = StartupStatuses.Pending;
+                entity.RejectionReason = null;
+            }
+        }
+
+        public override async Task<StartupResponse?> UpdateAsync(int id, StartupUpsertRequest request)
+        {
+            var result = await base.UpdateAsync(id, request);
+            if (result == null)
+                return null;
+
+            // Reload with navigations so StatusName / CategoryName / etc. are populated
+            return await GetByIdAsync(id);
         }
 
         #endregion

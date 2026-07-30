@@ -107,8 +107,12 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                                 itemBuilder: (context, i) {
                                   final s = _myStartups[i];
+                                  final canEdit = StartupCreateScreen.isEditableStatus(s.statusName);
                                   return GestureDetector(
-                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StartupDetailsScreen(startupId: s.id))),
+                                    onTap: () async {
+                                      await Navigator.push(context, MaterialPageRoute(builder: (_) => StartupDetailsScreen(startupId: s.id)));
+                                      _loadData();
+                                    },
                                     child: Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
@@ -123,6 +127,23 @@ class _MyStartupsScreenState extends State<MyStartupsScreen> with SingleTickerPr
                                             children: [
                                               Expanded(child: Text(s.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
                                               StatusChip(status: s.statusName),
+                                              if (canEdit) ...[
+                                                const SizedBox(width: 4),
+                                                IconButton(
+                                                  tooltip: 'Edit',
+                                                  visualDensity: VisualDensity.compact,
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                                  icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
+                                                  onPressed: () async {
+                                                    final changed = await Navigator.push<bool>(
+                                                      context,
+                                                      MaterialPageRoute(builder: (_) => StartupCreateScreen(startup: s)),
+                                                    );
+                                                    if (changed == true) _loadData();
+                                                  },
+                                                ),
+                                              ],
                                             ],
                                           ),
                                           const SizedBox(height: 8),

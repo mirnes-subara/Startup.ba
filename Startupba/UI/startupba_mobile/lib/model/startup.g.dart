@@ -37,6 +37,8 @@ Startup _$StartupFromJson(Map<String, dynamic> json) => Startup(
   likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
   favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
   donationCount: (json['donationCount'] as num?)?.toInt() ?? 0,
+  isLiked: json['isLiked'] as bool? ?? false,
+  isFavorited: json['isFavorited'] as bool? ?? false,
   coverImage: json['coverImage'] as String?,
 );
 
@@ -65,5 +67,7 @@ Map<String, dynamic> _$StartupToJson(Startup instance) => <String, dynamic>{
   'likeCount': instance.likeCount,
   'favoriteCount': instance.favoriteCount,
   'donationCount': instance.donationCount,
+  'isLiked': instance.isLiked,
+  'isFavorited': instance.isFavorited,
   'coverImage': instance.coverImage,
 };

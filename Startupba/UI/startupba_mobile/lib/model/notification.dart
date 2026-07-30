@@ -8,7 +8,10 @@ class AppNotification {
   final int userId;
   final String title;
   final String message;
-  final String? type;
+  final int type;
+  final String typeName;
+  final int? referenceId;
+  final String? referenceType;
   final bool isRead;
   final DateTime createdAt;
 
@@ -17,7 +20,10 @@ class AppNotification {
     this.userId = 0,
     this.title = '',
     this.message = '',
-    this.type,
+    this.type = 0,
+    this.typeName = '',
+    this.referenceId,
+    this.referenceType,
     this.isRead = false,
     required this.createdAt,
   });

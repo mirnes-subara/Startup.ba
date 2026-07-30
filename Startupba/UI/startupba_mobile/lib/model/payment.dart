@@ -56,13 +56,19 @@ class Payment {
 @JsonSerializable()
 class PaymentIntentResponse {
   final int paymentId;
-  final String clientSecret;
+  final int donationId;
   final String paymentIntentId;
+  final String clientSecret;
+  final String ephemeralKey;
+  final String customerId;
 
   PaymentIntentResponse({
     this.paymentId = 0,
-    this.clientSecret = '',
+    this.donationId = 0,
     this.paymentIntentId = '',
+    this.clientSecret = '',
+    this.ephemeralKey = '',
+    this.customerId = '',
   });
 
   factory PaymentIntentResponse.fromJson(Map<String, dynamic> json) =>

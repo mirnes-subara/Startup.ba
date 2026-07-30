@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -72,9 +73,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.bytes != null) {
-      setState(() => _picture = base64Encode(result.files.single.bytes!));
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.single;
+      List<int>? bytes = file.bytes;
+      if (bytes == null && file.path != null && file.path!.isNotEmpty) {
+        bytes = await File(file.path!).readAsBytes();
+      }
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not load the selected image')),
+          );
+        }
+        return;
+      }
+      final imageBytes = bytes;
+      setState(() => _picture = base64Encode(imageBytes));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load the selected image')),
+        );
+      }
     }
   }
 

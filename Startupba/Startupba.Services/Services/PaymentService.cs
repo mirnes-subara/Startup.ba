@@ -33,7 +33,16 @@ namespace Startupba.Services.Services
         {
             StripeConfiguration.ApiKey = _stripeSecretKey;
 
-            // 1. Create Stripe customer
+            // 1. Create a pending donation (validated for approved startup / existing user)
+            var donation = await _donationService.CreateAsync(new DonationUpsertRequest
+            {
+                StartupId = request.StartupId,
+                UserId = request.UserId,
+                Amount = request.Amount,
+                Message = request.Message,
+            });
+
+            // 2. Create Stripe customer
             var customerService = new CustomerService();
             var customer = await customerService.CreateAsync(new CustomerCreateOptions
             {
@@ -45,17 +54,12 @@ namespace Startupba.Services.Services
                     { "city", request.BillingCity ?? "" },
                     { "state", request.BillingState ?? "" },
                     { "country", request.BillingCountry ?? "" },
+                    { "donation_id", donation.Id.ToString() },
+                    { "startup_id", request.StartupId.ToString() },
                 }
             });
 
-            // 2. Create ephemeral key for the customer
-            var ephemeralKeyService = new EphemeralKeyService();
-            var ephemeralKey = await ephemeralKeyService.CreateAsync(new EphemeralKeyCreateOptions
-            {
-                Customer = customer.Id,
-            });
-
-            // 3. Create payment intent
+            // 3. Create payment intent (Payment Sheet only needs clientSecret)
             var amountInCents = (long)(request.Amount * 100);
             var paymentIntentService = new PaymentIntentService();
             var paymentIntent = await paymentIntentService.CreateAsync(new PaymentIntentCreateOptions
@@ -71,16 +75,16 @@ namespace Startupba.Services.Services
                 Metadata = new Dictionary<string, string>
                 {
                     { "customer_name", request.CustomerName },
-                    { "billing_address", request.BillingAddress ?? "" },
-                    { "billing_city", request.BillingCity ?? "" },
-                    { "billing_state", request.BillingState ?? "" },
-                    { "billing_country", request.BillingCountry ?? "" },
+                    { "donation_id", donation.Id.ToString() },
+                    { "startup_id", request.StartupId.ToString() },
+                    { "user_id", request.UserId.ToString() },
                 }
             });
 
-            // 4. Save payment record to database
+            // 4. Save payment record linked to the pending donation
             var payment = new Database.Payment
             {
+                DonationId = donation.Id,
                 StripePaymentIntentId = paymentIntent.Id,
                 StripeCustomerId = customer.Id,
                 Amount = request.Amount,
@@ -103,8 +107,10 @@ namespace Startupba.Services.Services
             return new PaymentIntentResponse
             {
                 PaymentId = payment.Id,
-                ClientSecret = paymentIntent.ClientSecret,
-                EphemeralKey = ephemeralKey.Secret,
+                DonationId = donation.Id,
+                PaymentIntentId = paymentIntent.Id,
+                ClientSecret = paymentIntent.ClientSecret ?? string.Empty,
+                EphemeralKey = string.Empty,
                 CustomerId = customer.Id,
             };
         }
@@ -122,6 +128,21 @@ namespace Startupba.Services.Services
             if (donation == null)
             {
                 throw new InvalidOperationException($"Donation with ID {request.DonationId} not found.");
+            }
+
+            if (payment.DonationId.HasValue && payment.DonationId.Value != request.DonationId)
+            {
+                throw new InvalidOperationException("Donation does not match this payment.");
+            }
+
+            // Verify the PaymentIntent actually succeeded on Stripe before completing
+            StripeConfiguration.ApiKey = _stripeSecretKey;
+            var paymentIntentService = new PaymentIntentService();
+            var paymentIntent = await paymentIntentService.GetAsync(payment.StripePaymentIntentId);
+            if (paymentIntent.Status != "succeeded")
+            {
+                throw new InvalidOperationException(
+                    $"Stripe payment is not succeeded (status: {paymentIntent.Status}).");
             }
 
             payment.DonationId = request.DonationId;

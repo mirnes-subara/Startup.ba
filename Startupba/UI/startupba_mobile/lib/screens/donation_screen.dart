@@ -38,21 +38,30 @@ class _DonationScreenState extends State<DonationScreen> {
       final paymentProvider = context.read<PaymentProvider>();
       final user = UserProvider.currentUser!;
 
-      // Create payment intent
+      final customerName = user.fullName.trim().isEmpty
+          ? (user.email.trim().isEmpty ? 'Donor' : user.email.trim())
+          : user.fullName.trim();
+
+      // Create payment intent (+ pending donation on the server)
       final intent = await paymentProvider.createPaymentIntent(
         startupId: widget.startup.id,
         userId: user.id,
         amount: _amount,
         currency: 'eur',
-        customerName: user.fullName,
+        customerName: customerName,
         customerEmail: user.email,
         message: _messageCtrl.text.trim().isEmpty ? null : _messageCtrl.text.trim(),
       );
 
-      // Initialize Stripe payment sheet
+      // Initialize Stripe payment sheet (customer + ephemeral key only if both present)
+      final hasCustomerSession =
+          intent.customerId.isNotEmpty && intent.ephemeralKey.isNotEmpty;
       await stripe.Stripe.instance.initPaymentSheet(
         paymentSheetParameters: stripe.SetupPaymentSheetParameters(
           paymentIntentClientSecret: intent.clientSecret,
+          customerEphemeralKeySecret:
+              hasCustomerSession ? intent.ephemeralKey : null,
+          customerId: hasCustomerSession ? intent.customerId : null,
           merchantDisplayName: 'Startup.ba',
           style: ThemeMode.light,
         ),
@@ -61,8 +70,8 @@ class _DonationScreenState extends State<DonationScreen> {
       // Present payment sheet
       await stripe.Stripe.instance.presentPaymentSheet();
 
-      // Confirm payment
-      await paymentProvider.confirmPayment(intent.paymentId, intent.paymentIntentId);
+      // Confirm payment and complete the pending donation
+      await paymentProvider.confirmPayment(intent.paymentId, intent.donationId);
 
       if (mounted) {
         _showSuccessDialog();

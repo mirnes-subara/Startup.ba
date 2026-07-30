@@ -12,6 +12,7 @@ import 'package:startupba_mobile/screens/donation_screen.dart';
 import 'package:startupba_mobile/screens/blog_details_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
 import 'package:startupba_mobile/screens/report_screen.dart';
+import 'package:startupba_mobile/screens/startup_create_screen.dart';
 import 'package:startupba_mobile/screens/user_profile_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
@@ -63,6 +64,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           _startup = startup;
           _images = images.items;
           _relatedPosts = posts.items;
+          _isLiked = startup?.isLiked ?? false;
+          _isFavorited = startup?.isFavorited ?? false;
           _isLoading = false;
         });
       }
@@ -78,10 +81,23 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     try {
       if (_isLiked) {
         await provider.unlike(_startup!.id, user.id);
+        setState(() {
+          _isLiked = false;
+          _startup = _startup!.copyWith(
+            isLiked: false,
+            likeCount: (_startup!.likeCount - 1).clamp(0, 1 << 30),
+          );
+        });
       } else {
         await provider.like(_startup!.id, user.id);
+        setState(() {
+          _isLiked = true;
+          _startup = _startup!.copyWith(
+            isLiked: true,
+            likeCount: _startup!.likeCount + 1,
+          );
+        });
       }
-      setState(() => _isLiked = !_isLiked);
     } catch (_) {}
   }
 
@@ -92,10 +108,23 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     try {
       if (_isFavorited) {
         await provider.removeFavorite(_startup!.id, user.id);
+        setState(() {
+          _isFavorited = false;
+          _startup = _startup!.copyWith(
+            isFavorited: false,
+            favoriteCount: (_startup!.favoriteCount - 1).clamp(0, 1 << 30),
+          );
+        });
       } else {
         await provider.addFavorite(_startup!.id, user.id);
+        setState(() {
+          _isFavorited = true;
+          _startup = _startup!.copyWith(
+            isFavorited: true,
+            favoriteCount: _startup!.favoriteCount + 1,
+          );
+        });
       }
-      setState(() => _isFavorited = !_isFavorited);
     } catch (_) {}
   }
 
@@ -117,6 +146,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
 
     final s = _startup!;
     final currencyFormat = NumberFormat.currency(symbol: '€', decimalDigits: 0);
+    final isOwner = UserProvider.currentUser?.id == s.founderId;
+    final canEdit = isOwner && StartupCreateScreen.isEditableStatus(s.statusName);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -139,6 +170,25 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
+              if (canEdit)
+                IconButton(
+                  tooltip: 'Edit',
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.edit_outlined, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () async {
+                    final changed = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(builder: (_) => StartupCreateScreen(startup: s)),
+                    );
+                    if (changed == true) _loadStartup();
+                  },
+                ),
               IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(6),

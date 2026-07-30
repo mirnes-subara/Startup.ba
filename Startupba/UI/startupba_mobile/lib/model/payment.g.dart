@@ -58,14 +58,20 @@ PaymentIntentResponse _$PaymentIntentResponseFromJson(
   Map<String, dynamic> json,
 ) => PaymentIntentResponse(
   paymentId: (json['paymentId'] as num?)?.toInt() ?? 0,
-  clientSecret: json['clientSecret'] as String? ?? '',
+  donationId: (json['donationId'] as num?)?.toInt() ?? 0,
   paymentIntentId: json['paymentIntentId'] as String? ?? '',
+  clientSecret: json['clientSecret'] as String? ?? '',
+  ephemeralKey: json['ephemeralKey'] as String? ?? '',
+  customerId: json['customerId'] as String? ?? '',
 );
 
 Map<String, dynamic> _$PaymentIntentResponseToJson(
   PaymentIntentResponse instance,
 ) => <String, dynamic>{
   'paymentId': instance.paymentId,
-  'clientSecret': instance.clientSecret,
+  'donationId': instance.donationId,
   'paymentIntentId': instance.paymentIntentId,
+  'clientSecret': instance.clientSecret,
+  'ephemeralKey': instance.ephemeralKey,
+  'customerId': instance.customerId,
 };
