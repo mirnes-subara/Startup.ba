@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/model/blog_post.dart';
+import 'package:startupba_mobile/model/startup.dart';
 import 'package:startupba_mobile/providers/blog_post_provider.dart';
+import 'package:startupba_mobile/providers/startup_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
@@ -25,12 +27,15 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
   final _contentCtrl = TextEditingController();
   String? _imageBase64;
   bool _isLoading = false;
+  List<Startup> _userStartups = [];
+  int? _selectedStartupId;
 
   bool get _isEditing => widget.blogPost != null;
 
   @override
   void initState() {
     super.initState();
+    _selectedStartupId = widget.startupId ?? widget.blogPost?.startupId;
     if (_isEditing) {
       _titleCtrl.text = widget.blogPost!.title;
       _contentCtrl.text = widget.blogPost!.content;
@@ -39,6 +44,21 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
     if (widget.startupName != null && !_isEditing) {
       _titleCtrl.text = 'Check out: ${widget.startupName}';
     }
+    _loadUserStartups();
+  }
+
+  Future<void> _loadUserStartups() async {
+    final userId = UserProvider.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final provider = context.read<StartupProvider>();
+      final result = await provider.get(filter: {'founderId': userId.toString(), 'pageSize': '50'});
+      if (mounted) {
+        setState(() {
+          _userStartups = result.items;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -94,7 +114,7 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
         'content': _contentCtrl.text.trim(),
         'imageData': _imageBase64,
         'authorId': UserProvider.currentUser?.id,
-        'startupId': widget.startupId ?? widget.blogPost?.startupId,
+        'startupId': _selectedStartupId,
       };
 
       if (_isEditing) {
@@ -174,22 +194,62 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
               maxLines: 2,
             ),
             const Divider(),
-            if (widget.startupName != null || widget.blogPost?.startupName != null)
+            // Optional Startup Association
+            if (_userStartups.isNotEmpty || widget.startupName != null || widget.blogPost?.startupName != null) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.rocket_launch, size: 16, color: AppColors.secondary),
-                      const SizedBox(width: 6),
-                      Text('Linked to: ${widget.startupName ?? widget.blogPost?.startupName}', style: const TextStyle(fontSize: 12, color: AppColors.secondary, fontWeight: FontWeight.w600)),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      value: _selectedStartupId,
+                      isExpanded: true,
+                      hint: const Row(
+                        children: [
+                          Icon(Icons.rocket_launch_outlined, size: 18, color: AppColors.primary),
+                          SizedBox(width: 8),
+                          Text('Attach to a startup (Optional)', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Row(
+                            children: [
+                              Icon(Icons.layers_clear_outlined, size: 18, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text('None (General community post)', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                        ..._userStartups.map((s) => DropdownMenuItem<int?>(
+                              value: s.id,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.rocket_launch, size: 18, color: AppColors.primary),
+                                  const SizedBox(width: 8),
+                                  Text(s.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                                ],
+                              ),
+                            )),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedStartupId = val;
+                        });
+                      },
+                    ),
                   ),
                 ),
               ),
+              const Divider(),
+            ],
             // Content
             TextField(
               controller: _contentCtrl,

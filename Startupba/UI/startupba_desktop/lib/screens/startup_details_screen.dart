@@ -148,6 +148,15 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                         children: [
                           Row(
                             children: [
+                              if (_startup.logoImage != null && _startup.logoImage!.isNotEmpty) ...[
+                                BaseImage(
+                                  base64Data: _startup.logoImage,
+                                  width: 44,
+                                  height: 44,
+                                  borderRadius: 22,
+                                ),
+                                const SizedBox(width: 12),
+                              ],
                               Expanded(
                                 child: Text(
                                   _startup.name,

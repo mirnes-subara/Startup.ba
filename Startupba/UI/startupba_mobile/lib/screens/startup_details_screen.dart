@@ -16,7 +16,6 @@ import 'package:startupba_mobile/screens/startup_create_screen.dart';
 import 'package:startupba_mobile/screens/user_profile_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
-import 'package:startupba_mobile/widgets/funding_progress_bar.dart';
 import 'package:startupba_mobile/widgets/status_chip.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
@@ -62,7 +61,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
       if (mounted) {
         setState(() {
           _startup = startup;
-          _images = images.items;
+          _images = images.items.where((img) => !img.isLogo).toList();
           _relatedPosts = posts.items;
           _isLiked = startup?.isLiked ?? false;
           _isFavorited = startup?.isFavorited ?? false;
@@ -260,9 +259,32 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name and status
+                  // Name and status with logo
                   Row(
                     children: [
+                      if (s.logoImage != null && s.logoImage!.isNotEmpty) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.border, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: BaseImage(
+                            base64Data: s.logoImage,
+                            width: 56,
+                            height: 56,
+                            borderRadius: 28,
+                            placeholderIcon: Icons.rocket_launch,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                      ],
                       Expanded(
                         child: Text(
                           s.name,

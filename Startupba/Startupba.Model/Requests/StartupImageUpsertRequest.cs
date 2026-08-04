@@ -14,6 +14,8 @@ namespace Startupba.Model.Requests
 
         public bool IsCover { get; set; } = false;
 
+        public bool IsLogo { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
     }
 }

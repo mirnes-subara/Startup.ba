@@ -29,6 +29,7 @@ class Startup {
   final int favoriteCount;
   final int donationCount;
   final String? coverImage;
+  final String? logoImage;
 
   Startup({
     this.id = 0,
@@ -56,6 +57,7 @@ class Startup {
     this.favoriteCount = 0,
     this.donationCount = 0,
     this.coverImage,
+    this.logoImage,
   });
 
   factory Startup.fromJson(Map<String, dynamic> json) =>

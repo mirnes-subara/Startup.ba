@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:startupba_mobile/model/category.dart';
+import 'package:startupba_mobile/model/blog_post.dart';
 import 'package:startupba_mobile/model/startup.dart';
-import 'package:startupba_mobile/providers/category_provider.dart';
+import 'package:startupba_mobile/providers/blog_post_provider.dart';
 import 'package:startupba_mobile/providers/startup_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
+import 'package:startupba_mobile/screens/blog_details_screen.dart';
+import 'package:startupba_mobile/screens/blog_edit_screen.dart';
 import 'package:startupba_mobile/screens/startup_details_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/startup_card.dart';
 import 'package:startupba_mobile/widgets/empty_state.dart';
 
@@ -18,194 +22,147 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Startup> _startups = [];
-  List<Startup> _recommended = [];
-  List<Category> _categories = [];
+  List<BlogPost> _posts = [];
+  List<Startup> _featured = [];
   bool _isLoading = true;
-  bool _isLoadingMore = false;
-  int _page = 0;
-  int? _totalCount;
-  int? _selectedCategoryId;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      _loadMore();
-    }
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
+      final blogProvider = context.read<BlogPostProvider>();
       final startupProvider = context.read<StartupProvider>();
-      final categoryProvider = context.read<CategoryProvider>();
 
-      final filter = <String, dynamic>{
-        'page': '0',
-        'pageSize': '10',
-        'isActive': 'true',
-      };
-      if (_selectedCategoryId != null) {
-        filter['categoryId'] = _selectedCategoryId.toString();
-      }
-      if (_searchQuery.isNotEmpty) {
-        filter['searchText'] = _searchQuery;
-      }
+      final blogResult = await blogProvider.get(filter: {'pageSize': '50'});
 
-      final results = await startupProvider.get(filter: filter);
-      final categories = await categoryProvider.get();
-
-      // Load recommendations
+      // Load featured / recommended startups
       final userId = UserProvider.currentUser?.id;
-      List<Startup> recommended = [];
+      List<Startup> featured = [];
       if (userId != null) {
         try {
-          recommended = await startupProvider.getRecommended(userId, count: 6);
+          featured = await startupProvider.getRecommended(userId, count: 6);
+        } catch (_) {}
+      }
+      // Fallback: if no recommendations, load latest active startups
+      if (featured.isEmpty) {
+        try {
+          final startupResult = await startupProvider.get(
+            filter: {'pageSize': '6', 'isActive': 'true'},
+          );
+          featured = startupResult.items;
         } catch (_) {}
       }
 
       if (mounted) {
         setState(() {
-          _startups = results.items;
-          _totalCount = results.totalCount;
-          _categories = categories.items;
-          _recommended = recommended;
-          _page = 0;
+          _posts = blogResult.items;
+          _featured = featured;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_isLoadingMore) return;
-    if (_totalCount != null && _startups.length >= _totalCount!) return;
-
-    setState(() => _isLoadingMore = true);
-    try {
-      final startupProvider = context.read<StartupProvider>();
-      final filter = <String, dynamic>{
-        'page': (_page + 1).toString(),
-        'pageSize': '10',
-        'isActive': 'true',
-      };
-      if (_selectedCategoryId != null) {
-        filter['categoryId'] = _selectedCategoryId.toString();
-      }
-      if (_searchQuery.isNotEmpty) {
-        filter['searchText'] = _searchQuery;
-      }
-
-      final results = await startupProvider.get(filter: filter);
-      if (mounted) {
-        setState(() {
-          _startups.addAll(results.items);
-          _page++;
-          _isLoadingMore = false;
-        });
-      }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingMore = false);
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _onCategoryTap(int? categoryId) {
-    setState(() {
-      _selectedCategoryId = categoryId;
-    });
-    _loadData();
-  }
-
-  void _onSearch(String query) {
-    _searchQuery = query;
-    _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
+    final dateFormat = DateFormat('MMM d, yyyy');
+    final user = UserProvider.currentUser;
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
       child: CustomScrollView(
-        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         slivers: [
-          // Search bar
+          // ─── Create Post Box ───
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onSubmitted: _onSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Search startups...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 20),
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearch('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BlogEditScreen()),
+                  );
+                  _loadData();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.primary.withOpacity(0.15),
+                        child: user != null && user.firstName.isNotEmpty
+                            ? Text(
+                                user.firstName[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              )
+                            : const Icon(Icons.person, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(
+                            "What's on your mind?",
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-          // Category chips
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildCategoryChip(null, 'All'),
-                  ..._categories.map((c) => _buildCategoryChip(c.id, c.name)),
-                ],
-              ),
-            ),
-          ),
-          // Recommended section
-          if (_recommended.isNotEmpty && _selectedCategoryId == null && _searchQuery.isEmpty) ...[
+
+          // ─── Featured Startups ───
+          if (_featured.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
@@ -221,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Recommended for you',
+                      'Featured Startups',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                   ],
@@ -234,63 +191,61 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _recommended.length,
+                  itemCount: _featured.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     return StartupCard(
-                      startup: _recommended[index],
+                      startup: _featured[index],
                       compact: true,
-                      onTap: () => _openStartup(_recommended[index]),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StartupDetailsScreen(startupId: _featured[index].id),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
               ),
             ),
           ],
-          // All startups header
+
+          // ─── Blog Feed Header ───
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.1),
+                      color: AppColors.info.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.explore, color: AppColors.secondary, size: 20),
+                    child: const Icon(Icons.article_rounded, color: AppColors.info, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    _searchQuery.isNotEmpty
-                        ? 'Search Results'
-                        : _selectedCategoryId != null
-                            ? 'Filtered Startups'
-                            : 'Explore Startups',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  const Text(
+                    'Community Feed',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
-                  const Spacer(),
-                  if (_totalCount != null)
-                    Text(
-                      '${_totalCount} found',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                    ),
                 ],
               ),
             ),
           ),
-          // Startup list
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-            )
-          else if (_startups.isEmpty)
-            SliverFillRemaining(
-              child: EmptyState(
-                icon: Icons.rocket_launch_outlined,
-                title: 'No startups found',
-                subtitle: 'Try adjusting your search or filters',
+
+          // ─── Blog Feed ───
+          if (_posts.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: EmptyState(
+                  icon: Icons.article_outlined,
+                  title: 'No posts yet',
+                  subtitle: 'Be the first to share your story!',
+                ),
               ),
             )
           else
@@ -299,23 +254,13 @@ class _HomeScreenState extends State<HomeScreen> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    if (index >= _startups.length) {
-                      return _isLoadingMore
-                          ? const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                            )
-                          : const SizedBox.shrink();
-                    }
+                    final post = _posts[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: StartupCard(
-                        startup: _startups[index],
-                        onTap: () => _openStartup(_startups[index]),
-                      ),
+                      child: _buildBlogCard(post, dateFormat),
                     );
                   },
-                  childCount: _startups.length + (_isLoadingMore ? 1 : 0),
+                  childCount: _posts.length,
                 ),
               ),
             ),
@@ -325,35 +270,148 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryChip(int? id, String name) {
-    final isSelected = _selectedCategoryId == id;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(name),
-        selected: isSelected,
-        onSelected: (_) => _onCategoryTap(id),
-        backgroundColor: Colors.white,
-        selectedColor: AppColors.primary,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textSecondary,
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+  Widget _buildBlogCard(BlogPost post, DateFormat dateFormat) {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => BlogDetailsScreen(blogPostId: post.id)),
+        );
+        _loadData();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Author header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    child: Text(
+                      post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.authorName,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        Text(
+                          dateFormat.format(post.createdAt),
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (post.startupName != null && post.startupId != null)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StartupDetailsScreen(startupId: post.startupId!),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.rocket_launch, size: 12, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              post.startupName!,
+                              style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Cover image
+            if (post.imageData != null && post.imageData!.isNotEmpty)
+              BaseImage(
+                base64Data: post.imageData,
+                width: double.infinity,
+                height: 200,
+                borderRadius: 0,
+                placeholderIcon: Icons.article,
+              ),
+            // Title & content preview
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    post.content,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.4),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            // Engagement row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+              child: Row(
+                children: [
+                  Icon(Icons.favorite_border, size: 18, color: Colors.grey[500]),
+                  const SizedBox(width: 4),
+                  Text('${post.likeCount}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  const SizedBox(width: 16),
+                  Icon(Icons.chat_bubble_outline, size: 18, color: Colors.grey[500]),
+                  const SizedBox(width: 4),
+                  Text('${post.commentCount}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  const Spacer(),
+                  Text(
+                    'Read more',
+                    style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.primary),
+                ],
+              ),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-      ),
-    );
-  }
-
-  void _openStartup(Startup startup) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StartupDetailsScreen(startupId: startup.id),
       ),
     );
   }

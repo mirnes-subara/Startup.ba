@@ -177,9 +177,13 @@ namespace Startupba.Services.Services
             }
 
             response.CoverImage = entity.StartupImages?
-                .Where(i => i.IsActive)
+                .Where(i => i.IsActive && !i.IsLogo)
                 .OrderByDescending(i => i.IsCover)
                 .ThenBy(i => i.DisplayOrder)
+                .FirstOrDefault()?.ImageData;
+
+            response.LogoImage = entity.StartupImages?
+                .Where(i => i.IsActive && i.IsLogo)
                 .FirstOrDefault()?.ImageData;
 
             return response;

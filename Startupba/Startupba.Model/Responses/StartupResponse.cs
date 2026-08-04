@@ -55,5 +55,8 @@ namespace Startupba.Model.Responses
 
         // Cover image (first cover, if any)
         public byte[]? CoverImage { get; set; }
+
+        // Logo image (first logo, if any)
+        public byte[]? LogoImage { get; set; }
     }
 }

@@ -5,7 +5,7 @@ import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/providers/notification_provider.dart';
 import 'package:startupba_mobile/providers/auth_provider.dart';
 import 'package:startupba_mobile/screens/home_screen.dart';
-import 'package:startupba_mobile/screens/blog_list_screen.dart';
+import 'package:startupba_mobile/screens/explore_screen.dart';
 import 'package:startupba_mobile/screens/chat_list_screen.dart';
 import 'package:startupba_mobile/screens/my_startups_screen.dart';
 import 'package:startupba_mobile/screens/profile_screen.dart';
@@ -29,8 +29,8 @@ class _MasterScreenState extends State<MasterScreen>
   late Animation<double> _fadeAnimation;
 
   final List<String> _pageTitles = [
-    'Discover',
-    'Blog',
+    'Home',
+    'Explore',
     'Chat',
     'My Startups',
     'Profile',
@@ -38,7 +38,7 @@ class _MasterScreenState extends State<MasterScreen>
 
   final List<IconData> _pageIcons = [
     Icons.home_rounded,
-    Icons.article_rounded,
+    Icons.explore_rounded,
     Icons.chat_bubble_rounded,
     Icons.rocket_launch_rounded,
     Icons.person_rounded,
@@ -264,7 +264,7 @@ class _MasterScreenState extends State<MasterScreen>
                 physics: const BouncingScrollPhysics(),
                 children: const [
                   HomeScreen(),
-                  BlogListScreen(),
+                  ExploreScreen(),
                   ChatListScreen(),
                   MyStartupsScreen(),
                   ProfileScreen(),

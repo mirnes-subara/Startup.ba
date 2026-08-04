@@ -25,9 +25,13 @@ namespace Startupba.Services.Database
         private static readonly string MalePhotos = Path.Combine("Assets", "people photos", "male");
         private static readonly string FemalePhotos = Path.Combine("Assets", "people photos", "female");
         private static readonly string StartupPhotos = Path.Combine("Assets", "startup pictures");
+        private static readonly string BlogPhotos = Path.Combine("Assets", "blog pictures");
 
         private static byte[] StartupPhoto(string fileName) =>
             ImageConversion.ConvertImageToByteArray(StartupPhotos, fileName);
+
+        private static byte[] BlogPhoto(string fileName) =>
+            ImageConversion.ConvertImageToByteArray(BlogPhotos, fileName);
 
         private static byte[] MalePhoto(string fileName) =>
             ImageConversion.ConvertImageToByteArray(MalePhotos, fileName);
@@ -172,7 +176,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 1,
-                    Picture = MalePhoto("m1.webp")
+                    Picture = null
                 },
                 // Regular user - founder + investor (mobile app)
                 new User
@@ -190,7 +194,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 1,
-                    Picture = MalePhoto("m2.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -207,7 +211,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
                     CityId = 2,
-                    Picture = FemalePhoto("f1.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -224,7 +228,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 6,
-                    Picture = MalePhoto("m3.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -241,7 +245,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
                     CityId = 1,
-                    Picture = FemalePhoto("f2.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -258,7 +262,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 9,
-                    Picture = MalePhoto("m4.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -275,7 +279,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 2,
                     CityId = 14,
-                    Picture = FemalePhoto("f3.webp")
+                    Picture = null
                 },
                 new User
                 {
@@ -292,7 +296,7 @@ namespace Startupba.Services.Database
                     PhoneNumber = DefaultPhoneNumber,
                     GenderId = 1,
                     CityId = 11,
-                    Picture = MalePhoto("m5.webp")
+                    Picture = null
                 }
             );
 
@@ -536,21 +540,32 @@ namespace Startupba.Services.Database
 
             modelBuilder.Entity<StartupImage>().HasData(
                 // Covers (promo)
-                new StartupImage { Id = 1, StartupId = 1, ImageData = StartupPhoto("greencycle_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 2, StartupId = 2, ImageData = StartupPhoto("paylink_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 3, StartupId = 3, ImageData = StartupPhoto("meditrack_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 4, StartupId = 4, ImageData = StartupPhoto("learnhub_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 5, StartupId = 5, ImageData = StartupPhoto("farmsense_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 6, StartupId = 6, ImageData = StartupPhoto("questforge_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 7, StartupId = 7, ImageData = StartupPhoto("staylocal_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 8, StartupId = 8, ImageData = StartupPhoto("snackwise_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 9, StartupId = 9, ImageData = StartupPhoto("cryptoboost_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 10, StartupId = 10, ImageData = StartupPhoto("rideshare_promo.webp"), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 1, StartupId = 1, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 2, StartupId = 2, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 3, StartupId = 3, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 4, StartupId = 4, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 5, StartupId = 5, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 6, StartupId = 6, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 7, StartupId = 7, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 8, StartupId = 8, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 9, StartupId = 9, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 10, StartupId = 10, ImageData = Array.Empty<byte>(), DisplayOrder = 1, IsCover = true, IsActive = true, CreatedAt = fixedDate },
                 // Extra gallery images (team) where available
-                new StartupImage { Id = 11, StartupId = 1, ImageData = StartupPhoto("greencycle_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 12, StartupId = 2, ImageData = StartupPhoto("paylink_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 13, StartupId = 3, ImageData = StartupPhoto("meditrack_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
-                new StartupImage { Id = 14, StartupId = 6, ImageData = StartupPhoto("questforge_team.webp"), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate }
+                new StartupImage { Id = 11, StartupId = 1, ImageData = Array.Empty<byte>(), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 12, StartupId = 2, ImageData = Array.Empty<byte>(), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 13, StartupId = 3, ImageData = Array.Empty<byte>(), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 14, StartupId = 6, ImageData = Array.Empty<byte>(), DisplayOrder = 2, IsCover = false, IsActive = true, CreatedAt = fixedDate },
+                // Logos
+                new StartupImage { Id = 15, StartupId = 1, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 16, StartupId = 2, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 17, StartupId = 3, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 18, StartupId = 4, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 19, StartupId = 5, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 20, StartupId = 6, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 21, StartupId = 7, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 22, StartupId = 8, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 23, StartupId = 9, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate },
+                new StartupImage { Id = 24, StartupId = 10, ImageData = Array.Empty<byte>(), DisplayOrder = 0, IsCover = false, IsLogo = true, IsActive = true, CreatedAt = fixedDate }
             );
 
             #endregion
@@ -721,6 +736,7 @@ namespace Startupba.Services.Database
                               "prototyping smart bins in my garage, GreenCycle was born. In this post I want to share the " +
                               "journey so far and what we plan to do with the funding - from producing the first batch of " +
                               "bins to signing up local shops for the rewards program.",
+                    ImageData = null,
                     IsActive = true,
                     CreatedAt = new DateTime(2025, 9, 5)
                 },
@@ -733,6 +749,7 @@ namespace Startupba.Services.Database
                     Content = "Sending money to a friend across the border should not take three days and cost ten euros. " +
                               "PayLink was born out of that frustration. Here is how our instant payment network works and " +
                               "why we believe the region is ready for it.",
+                    ImageData = null,
                     IsActive = true,
                     CreatedAt = new DateTime(2025, 9, 14)
                 },
@@ -745,6 +762,7 @@ namespace Startupba.Services.Database
                     Content = "Chronic patients juggle therapies, appointments and measurements every single day. MediTrack " +
                               "puts all of that in one app connected to the doctor's office. We are sharing our clinical " +
                               "pilot results and the roadmap for the next six months.",
+                    ImageData = null,
                     IsActive = true,
                     CreatedAt = new DateTime(2025, 9, 25)
                 },
@@ -757,6 +775,7 @@ namespace Startupba.Services.Database
                     Content = "After supporting a dozen projects on this platform, here are the five things I always check " +
                               "before donating: a clear problem statement, a realistic funding target, a concrete plan for " +
                               "the money, an active founder who answers questions, and community engagement on the startup page.",
+                    ImageData = null,
                     IsActive = true,
                     CreatedAt = new DateTime(2025, 10, 8)
                 },
@@ -769,44 +788,9 @@ namespace Startupba.Services.Database
                     Content = "A month after our beta launch, 100 students have completed their first course on LearnHub. " +
                               "Here is what we learned from their feedback and how the funding will help us produce twenty " +
                               "new project-based courses.",
+                    ImageData = null,
                     IsActive = true,
                     CreatedAt = new DateTime(2025, 11, 2)
-                },
-                new BlogPost
-                {
-                    Id = 6,
-                    AuthorId = 6,
-                    StartupId = null,
-                    Title = "The Startup Scene in the Balkans in 2026",
-                    Content = "More founders, more capital and more exits than ever before. In this overview I look at the " +
-                              "trends shaping the regional startup ecosystem this year and where crowdfunding platforms " +
-                              "like Startup.ba fit into the picture.",
-                    IsActive = true,
-                    CreatedAt = new DateTime(2025, 11, 18)
-                },
-                new BlogPost
-                {
-                    Id = 7,
-                    AuthorId = 4,
-                    StartupId = 7,
-                    Title = "StayLocal Is Fully Funded - Thank You!",
-                    Content = "We did it! StayLocal reached its funding target thanks to this amazing community. Launching " +
-                              "in three cities this spring. In this post: the full breakdown of how we will spend every euro " +
-                              "and how early supporters can claim their free first experience.",
-                    IsActive = true,
-                    CreatedAt = new DateTime(2025, 12, 21)
-                },
-                new BlogPost
-                {
-                    Id = 8,
-                    AuthorId = 8,
-                    StartupId = 5,
-                    Title = "FarmSense: Smart Sensors for Small Farms",
-                    Content = "Big agriculture has had precision farming for a decade. FarmSense brings the same technology " +
-                              "to small family farms at a fraction of the cost. Here is how our soil sensors work and the " +
-                              "results from our first pilot field.",
-                    IsActive = true,
-                    CreatedAt = new DateTime(2025, 12, 5)
                 }
             );
 
@@ -818,11 +802,7 @@ namespace Startupba.Services.Database
                 new Comment { Id = 5, BlogPostId = 3, UserId = 5, Content = "As a nurse, I can confirm patients desperately need this.", IsActive = true, CreatedAt = new DateTime(2025, 9, 26) },
                 new Comment { Id = 6, BlogPostId = 4, UserId = 2, Content = "Great checklist, saving this for my next campaign.", IsActive = true, CreatedAt = new DateTime(2025, 10, 9) },
                 new Comment { Id = 7, BlogPostId = 4, UserId = 3, Content = "Point four is so true - founders who reply build trust.", IsActive = true, CreatedAt = new DateTime(2025, 10, 10) },
-                new Comment { Id = 8, BlogPostId = 5, UserId = 7, Content = "Congrats on the milestone! Any plans for design courses?", IsActive = true, CreatedAt = new DateTime(2025, 11, 3) },
-                new Comment { Id = 9, BlogPostId = 6, UserId = 4, Content = "Nice overview. The exit numbers surprised me.", IsActive = true, CreatedAt = new DateTime(2025, 11, 19) },
-                new Comment { Id = 10, BlogPostId = 7, UserId = 5, Content = "So happy for you! Claiming my free experience for sure.", IsActive = true, CreatedAt = new DateTime(2025, 12, 21) },
-                new Comment { Id = 11, BlogPostId = 7, UserId = 6, Content = "Well deserved, the campaign was transparent from day one.", IsActive = true, CreatedAt = new DateTime(2025, 12, 22) },
-                new Comment { Id = 12, BlogPostId = 8, UserId = 5, Content = "What is the price per sensor for a 2-hectare farm?", IsActive = true, CreatedAt = new DateTime(2025, 12, 6) }
+                new Comment { Id = 8, BlogPostId = 5, UserId = 7, Content = "Congrats on the milestone! Any plans for design courses?", IsActive = true, CreatedAt = new DateTime(2025, 11, 3) }
             );
 
             modelBuilder.Entity<BlogPostLike>().HasData(
@@ -832,10 +812,7 @@ namespace Startupba.Services.Database
                 new BlogPostLike { Id = 4, BlogPostId = 2, UserId = 5, CreatedAt = new DateTime(2025, 9, 20) },
                 new BlogPostLike { Id = 5, BlogPostId = 3, UserId = 5, CreatedAt = new DateTime(2025, 9, 26) },
                 new BlogPostLike { Id = 6, BlogPostId = 4, UserId = 2, CreatedAt = new DateTime(2025, 10, 9) },
-                new BlogPostLike { Id = 7, BlogPostId = 4, UserId = 3, CreatedAt = new DateTime(2025, 10, 10) },
-                new BlogPostLike { Id = 8, BlogPostId = 7, UserId = 5, CreatedAt = new DateTime(2025, 12, 21) },
-                new BlogPostLike { Id = 9, BlogPostId = 7, UserId = 6, CreatedAt = new DateTime(2025, 12, 22) },
-                new BlogPostLike { Id = 10, BlogPostId = 7, UserId = 7, CreatedAt = new DateTime(2025, 12, 23) }
+                new BlogPostLike { Id = 7, BlogPostId = 4, UserId = 3, CreatedAt = new DateTime(2025, 10, 10) }
             );
 
             #endregion
@@ -937,7 +914,7 @@ namespace Startupba.Services.Database
                     Id = 2,
                     ReporterId = 6,
                     TargetType = 1, // BlogPost
-                    BlogPostId = 6,
+                    BlogPostId = 2,
                     Reason = "Inappropriate content",
                     Description = "The statistics in this post look made up and could mislead investors.",
                     Status = 0, // Pending
@@ -1040,6 +1017,81 @@ namespace Startupba.Services.Database
             );
 
             #endregion
+        }
+
+        public static void SeedImageFiles(StartupbaDbContext context)
+        {
+            try
+            {
+                // 1. Users profile photos
+                var users = context.Users.Where(u => u.Picture == null || u.Picture.Length == 0).ToList();
+                if (users.Any())
+                {
+                    foreach (var u in users)
+                    {
+                        if (u.GenderId == 2)
+                            u.Picture = FemalePhoto($"f{(u.Id % 4) + 1}.webp");
+                        else
+                            u.Picture = MalePhoto($"m{(u.Id % 4) + 1}.webp");
+                    }
+                }
+
+                // 2. Startup images (Covers, gallery, logos)
+                var images = context.StartupImages.Where(i => i.ImageData == null || i.ImageData.Length == 0).ToList();
+                if (images.Any())
+                {
+                    var photoMap = new Dictionary<int, string>
+                    {
+                        { 1, "greencycle_promo.webp" },
+                        { 2, "paylink_promo.webp" },
+                        { 3, "meditrack_promo.webp" },
+                        { 4, "learnhub_promo.webp" },
+                        { 5, "farmsense_promo.webp" },
+                        { 6, "questforge_promo.webp" },
+                        { 7, "staylocal_promo.webp" },
+                        { 8, "snackwise_promo.webp" },
+                        { 9, "cryptoboost_promo.webp" },
+                        { 10, "rideshare_promo.webp" },
+                        { 11, "greencycle_team.webp" },
+                        { 12, "paylink_team.webp" },
+                        { 13, "meditrack_team.webp" },
+                        { 14, "questforge_team.webp" },
+                        { 15, "greencycle_logo.webp" },
+                        { 16, "paylink_logo.webp" },
+                        { 17, "meditrack_logo.webp" },
+                        { 18, "learnhub_logo.webp" },
+                        { 19, "farmsense_logo.webp" },
+                        { 20, "questforge_logo.webp" },
+                        { 21, "staylocal_logo.webp" },
+                        { 22, "snackwise_logo.webp" },
+                        { 23, "cryptoboost_logo.webp" },
+                        { 24, "rideshare_logo.webp" }
+                    };
+                    foreach (var img in images)
+                    {
+                        if (photoMap.TryGetValue(img.Id, out var fileName))
+                        {
+                            img.ImageData = StartupPhoto(fileName);
+                        }
+                    }
+                }
+
+                // 3. Blog post cover images
+                var blogs = context.BlogPosts.Where(b => (b.ImageData == null || b.ImageData.Length == 0) && b.Id <= 5).ToList();
+                if (blogs.Any())
+                {
+                    foreach (var b in blogs)
+                    {
+                        b.ImageData = BlogPhoto($"id{b.Id}_blog.webp");
+                    }
+                }
+
+                context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error seeding image files: {ex.Message}");
+            }
         }
     }
 }

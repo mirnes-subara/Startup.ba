@@ -97,12 +97,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Row(
+                  Wrap(
+                    spacing: 24,
+                    runSpacing: 16,
                     children: [
                       _feature(Icons.rocket_launch, 'Startup moderation'),
-                      const SizedBox(width: 24),
                       _feature(Icons.analytics_outlined, 'Platform analytics'),
-                      const SizedBox(width: 24),
                       _feature(Icons.security, 'User verification'),
                     ],
                   ),

@@ -22,6 +22,8 @@ namespace Startupba.Services.Database
 
         public bool IsCover { get; set; } = false; // Mark one image as cover for the startup
 
+        public bool IsLogo { get; set; } = false; // Mark one image as the startup's logo
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

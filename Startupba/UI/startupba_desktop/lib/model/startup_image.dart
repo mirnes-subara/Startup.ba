@@ -9,6 +9,7 @@ class StartupImage {
   final String? imageData; // base64
   final int displayOrder;
   final bool isCover;
+  final bool isLogo;
   final bool isActive;
 
   StartupImage({
@@ -17,6 +18,7 @@ class StartupImage {
     this.imageData,
     this.displayOrder = 0,
     this.isCover = false,
+    this.isLogo = false,
     this.isActive = true,
   });
 

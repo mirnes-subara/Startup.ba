@@ -12,6 +12,7 @@ StartupImage _$StartupImageFromJson(Map<String, dynamic> json) => StartupImage(
   imageData: json['imageData'] as String?,
   displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
   isCover: json['isCover'] as bool? ?? false,
+  isLogo: json['isLogo'] as bool? ?? false,
   isActive: json['isActive'] as bool? ?? true,
 );
 
@@ -22,5 +23,6 @@ Map<String, dynamic> _$StartupImageToJson(StartupImage instance) =>
       'imageData': instance.imageData,
       'displayOrder': instance.displayOrder,
       'isCover': instance.isCover,
+      'isLogo': instance.isLogo,
       'isActive': instance.isActive,
     };

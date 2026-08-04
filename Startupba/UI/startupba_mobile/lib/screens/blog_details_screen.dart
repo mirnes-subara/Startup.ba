@@ -8,6 +8,7 @@ import 'package:startupba_mobile/providers/comment_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/report_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
+import 'package:startupba_mobile/screens/startup_details_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 
@@ -137,12 +138,35 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                       Text(dateFormat.format(p.createdAt), style: TextStyle(fontSize: 13, color: Colors.grey[400])),
                     ],
                   ),
-                  if (p.startupName != null) ...[
+                  if (p.startupName != null && p.startupId != null) ...[
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text('Startup: ${p.startupName}', style: const TextStyle(fontSize: 12, color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StartupDetailsScreen(startupId: p.startupId!),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.rocket_launch, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text('Startup: ${p.startupName}', style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primary),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 16),

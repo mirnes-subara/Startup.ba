@@ -158,6 +158,8 @@ using (var scope = app.Services.CreateScope())
         dataContext.Database.Migrate();
     }
 
+    DataSeeder.SeedImageFiles(dataContext);
+
     // Note: the recommendation system is content-based (category filtering) and
     // computed on demand in StartupService - no model training is required.
 }

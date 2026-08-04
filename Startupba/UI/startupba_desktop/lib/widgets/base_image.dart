@@ -11,6 +11,7 @@ class BaseImage extends StatelessWidget {
   final double height;
   final BoxFit fit;
   final IconData placeholderIcon;
+  final double borderRadius;
 
   const BaseImage({
     super.key,
@@ -19,6 +20,7 @@ class BaseImage extends StatelessWidget {
     this.height = 48,
     this.fit = BoxFit.cover,
     this.placeholderIcon = Icons.image_outlined,
+    this.borderRadius = 8,
   });
 
   Uint8List? _decode() {
@@ -38,7 +40,7 @@ class BaseImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final bytes = _decode();
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(borderRadius),
       child: Container(
         width: width,
         height: height,

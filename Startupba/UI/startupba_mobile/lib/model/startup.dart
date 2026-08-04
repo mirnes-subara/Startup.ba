@@ -31,6 +31,7 @@ class Startup {
   final bool isLiked;
   final bool isFavorited;
   final String? coverImage;
+  final String? logoImage;
 
   Startup({
     this.id = 0,
@@ -60,6 +61,7 @@ class Startup {
     this.isLiked = false,
     this.isFavorited = false,
     this.coverImage,
+    this.logoImage,
   });
 
   Startup copyWith({
@@ -96,6 +98,7 @@ class Startup {
       isLiked: isLiked ?? this.isLiked,
       isFavorited: isFavorited ?? this.isFavorited,
       coverImage: coverImage,
+      logoImage: logoImage,
     );
   }
 

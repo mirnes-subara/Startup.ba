@@ -63,6 +63,11 @@ namespace Startupba.Services.Services
                 query = query.Where(si => si.IsCover == search.IsCover.Value);
             }
 
+            if (search.IsLogo.HasValue)
+            {
+                query = query.Where(si => si.IsLogo == search.IsLogo.Value);
+            }
+
             if (search.IsActive.HasValue)
             {
                 query = query.Where(si => si.IsActive == search.IsActive.Value);
@@ -150,6 +155,19 @@ namespace Startupba.Services.Services
                     cover.IsCover = false;
                 }
             }
+
+            // If setting as logo, unset other logos for this startup
+            if (request.IsLogo)
+            {
+                var existingLogos = await _context.StartupImages
+                    .Where(si => si.StartupId == request.StartupId && si.IsLogo)
+                    .ToListAsync();
+
+                foreach (var logo in existingLogos)
+                {
+                    logo.IsLogo = false;
+                }
+            }
         }
 
         protected override async Task BeforeUpdate(StartupImage entity, StartupImageUpsertRequest request)
@@ -169,6 +187,19 @@ namespace Startupba.Services.Services
                 foreach (var cover in existingCovers)
                 {
                     cover.IsCover = false;
+                }
+            }
+
+            // If setting as logo, unset other logos for this startup (excluding current entity)
+            if (request.IsLogo && !entity.IsLogo)
+            {
+                var existingLogos = await _context.StartupImages
+                    .Where(si => si.StartupId == request.StartupId && si.IsLogo && si.Id != entity.Id)
+                    .ToListAsync();
+
+                foreach (var logo in existingLogos)
+                {
+                    logo.IsLogo = false;
                 }
             }
         }

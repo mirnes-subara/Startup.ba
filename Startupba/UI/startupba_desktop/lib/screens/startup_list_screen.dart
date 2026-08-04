@@ -205,8 +205,13 @@ class _StartupListScreenState extends State<StartupListScreen> {
                     .map(
                       (s) => DataRow(
                         cells: [
-                          DataCell(BaseImage(base64Data: s.coverImage, width: 40, height: 40)),
-                          DataCell(Text(s.name)),
+                          DataCell(BaseImage(
+                            base64Data: s.logoImage ?? s.coverImage,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                          )),
+                          DataCell(Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600))),
                           DataCell(Text(s.founderName)),
                           DataCell(Text(s.categoryName)),
                           DataCell(

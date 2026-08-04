@@ -38,10 +38,13 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
   List<Category> _categories = [];
   List<City> _cities = [];
   String? _coverImage;
+  String? _logoImage;
   List<String> _additionalImages = [];
   bool _isLoading = false;
   bool _coverChanged = false;
+  bool _logoChanged = false;
   int? _existingCoverImageId;
+  int? _existingLogoImageId;
   int _existingAdditionalCount = 0;
 
   bool get _isEditing => widget.startup != null;
@@ -104,9 +107,12 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
 
       final images = result.items;
       StartupImage? cover;
+      StartupImage? logo;
       final additional = <String>[];
       for (final img in images) {
-        if (img.isCover) {
+        if (img.isLogo) {
+          logo = img;
+        } else if (img.isCover) {
           cover = img;
         } else if (img.imageData != null && img.imageData!.isNotEmpty) {
           additional.add(img.imageData!);
@@ -118,6 +124,12 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
           _existingCoverImageId = cover.id;
           if (_coverImage == null || _coverImage!.isEmpty) {
             _coverImage = cover.imageData;
+          }
+        }
+        if (logo != null) {
+          _existingLogoImageId = logo.id;
+          if (_logoImage == null || _logoImage!.isEmpty) {
+            _logoImage = logo.imageData;
           }
         }
         _additionalImages = additional;
@@ -163,6 +175,36 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
       setState(() {
         _coverImage = base64Encode(bytes);
         _coverChanged = true;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load the selected image')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickLogoImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = await _bytesFromPickedFile(result.files.single);
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not load the selected image')),
+          );
+        }
+        return;
+      }
+      setState(() {
+        _logoImage = base64Encode(bytes);
+        _logoChanged = true;
       });
     } catch (_) {
       if (mounted) {
@@ -222,6 +264,7 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
         'startupId': startupId,
         'imageData': _coverImage,
         'isCover': true,
+        'isLogo': false,
         'displayOrder': 0,
         'isActive': true,
       });
@@ -230,6 +273,30 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
         'startupId': startupId,
         'imageData': _coverImage,
         'isCover': true,
+        'isLogo': false,
+        'displayOrder': 0,
+      });
+    }
+  }
+
+  Future<void> _saveLogoImage(int startupId, StartupImageProvider imageProvider) async {
+    if (!_logoChanged || _logoImage == null) return;
+
+    if (_existingLogoImageId != null) {
+      await imageProvider.update(_existingLogoImageId!, {
+        'startupId': startupId,
+        'imageData': _logoImage,
+        'isCover': false,
+        'isLogo': true,
+        'displayOrder': 0,
+        'isActive': true,
+      });
+    } else {
+      await imageProvider.insert({
+        'startupId': startupId,
+        'imageData': _logoImage,
+        'isCover': false,
+        'isLogo': true,
         'displayOrder': 0,
       });
     }
@@ -242,6 +309,7 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
         'startupId': startupId,
         'imageData': _additionalImages[i],
         'isCover': false,
+        'isLogo': false,
         'displayOrder': i + 1,
       });
     }
@@ -266,6 +334,7 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
         final updated = await startupProvider.update(widget.startup!.id, body);
         startupId = updated.id;
         await _saveCoverImage(startupId, imageProvider);
+        await _saveLogoImage(startupId, imageProvider);
         await _saveNewAdditionalImages(startupId, imageProvider);
       } else {
         final startup = await startupProvider.insert(body);
@@ -275,6 +344,16 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
             'startupId': startupId,
             'imageData': _coverImage,
             'isCover': true,
+            'isLogo': false,
+            'displayOrder': 0,
+          });
+        }
+        if (_logoImage != null) {
+          await imageProvider.insert({
+            'startupId': startupId,
+            'imageData': _logoImage,
+            'isCover': false,
+            'isLogo': true,
             'displayOrder': 0,
           });
         }
@@ -283,6 +362,7 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
             'startupId': startupId,
             'imageData': _additionalImages[i],
             'isCover': false,
+            'isLogo': false,
             'displayOrder': i + 1,
           });
         }
@@ -370,6 +450,55 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              Center(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickLogoImage,
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[100],
+                          border: Border.all(color: AppColors.primary, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: _logoImage != null && _logoImage!.isNotEmpty
+                            ? BaseImage(
+                                base64Data: _logoImage,
+                                width: 90,
+                                height: 90,
+                                borderRadius: 45,
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_outlined, size: 28, color: Colors.grey[500]),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Logo',
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    if (_logoImage != null && _logoImage!.isNotEmpty)
+                      TextButton(
+                        onPressed: _pickLogoImage,
+                        child: const Text('Change Logo', style: TextStyle(fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               GestureDetector(
                 onTap: _pickCoverImage,
                 child: _coverImage != null && _coverImage!.isNotEmpty

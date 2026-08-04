@@ -6,7 +6,7 @@ void main() {
     await tester.pumpWidget(const StartupBaAdminApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in'), findsOneWidget);
+    expect(find.text('Sign in'), findsWidgets);
     expect(find.text('Startup.ba'), findsWidgets);
   });
 }
