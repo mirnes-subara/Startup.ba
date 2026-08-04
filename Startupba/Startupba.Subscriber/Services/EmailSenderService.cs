@@ -9,6 +9,7 @@ namespace Startupba.Subscriber.Services
     {
         private readonly string _smtpEmail;
         private readonly string _smtpPassword;
+        private const string FromDisplayName = "Startup.ba";
 
         public EmailSenderService(IConfiguration configuration)
         {
@@ -18,36 +19,37 @@ namespace Startupba.Subscriber.Services
 
         public Task SendEmailAsync(string email, string subject, string message)
         {
-            var client = new SmtpClient("smtp.gmail.com", 587)
+            var client = CreateClient();
+            var mailMessage = new MailMessage
             {
-                EnableSsl = true,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(_smtpEmail, _smtpPassword)
+                From = new MailAddress(_smtpEmail, FromDisplayName),
+                Subject = subject,
+                Body = message,
+                IsBodyHtml = false,
             };
-
-            return client.SendMailAsync(
-                new MailMessage(from: _smtpEmail,
-                              to: email,
-                              subject,
-                              message
-                              ));
+            mailMessage.To.Add(email);
+            return client.SendMailAsync(mailMessage);
         }
 
         public Task SendHtmlEmailAsync(string email, string subject, string htmlBody)
         {
-            var client = new SmtpClient("smtp.gmail.com", 587)
+            var client = CreateClient();
+            var mailMessage = new MailMessage
             {
-                EnableSsl = true,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(_smtpEmail, _smtpPassword)
+                From = new MailAddress(_smtpEmail, FromDisplayName),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true,
             };
-
-            var mailMessage = new MailMessage(from: _smtpEmail, to: email, subject, htmlBody)
-            {
-                IsBodyHtml = true
-            };
-
+            mailMessage.To.Add(email);
             return client.SendMailAsync(mailMessage);
         }
+
+        private SmtpClient CreateClient() => new("smtp.gmail.com", 587)
+        {
+            EnableSsl = true,
+            UseDefaultCredentials = false,
+            Credentials = new NetworkCredential(_smtpEmail, _smtpPassword),
+        };
     }
 }

@@ -503,10 +503,12 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
             boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
           ),
           child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => DonationScreen(startup: s),
-              ));
+            onPressed: () async {
+              final donated = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (_) => DonationScreen(startup: s)),
+              );
+              if (donated == true && mounted) _loadStartup();
             },
             icon: const Icon(Icons.volunteer_activism, color: Colors.white),
             label: const Text('Donate Now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),

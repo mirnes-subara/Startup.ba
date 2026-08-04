@@ -180,7 +180,7 @@ namespace Startupba.Services.Database
                     Id = 2,
                     FirstName = "Adam",
                     LastName = "Foster",
-                    Email = "mobile@startupba.com",
+                    Email = "startup.ba.support1@gmail.com",
                     Username = "mobile",
                     PasswordHash = mobileHash,
                     PasswordSalt = mobileSalt,

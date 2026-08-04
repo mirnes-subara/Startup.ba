@@ -121,7 +121,10 @@ class _DonationScreenState extends State<DonationScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+              onPressed: () {
+                Navigator.pop(context); // dialog
+                Navigator.pop(context, true); // donation screen → refresh details
+              },
               child: const Text('Done'),
             ),
           ),
