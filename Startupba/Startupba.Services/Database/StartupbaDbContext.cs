@@ -209,6 +209,12 @@ namespace Startupba.Services.Database
                 .HasForeignKey(bp => bp.StartupId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<BlogPost>()
+                .HasOne(bp => bp.SharedFromBlogPost)
+                .WithMany()
+                .HasForeignKey(bp => bp.SharedFromBlogPostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             // Configure Comment entity relationships
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.BlogPost)

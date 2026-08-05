@@ -22,6 +22,11 @@ namespace Startupba.Services.Database
         /// </summary>
         public int? StartupId { get; set; }
 
+        /// <summary>
+        /// When set, this post is an in-app repost of another blog post.
+        /// </summary>
+        public int? SharedFromBlogPostId { get; set; }
+
         [Required]
         [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
@@ -44,6 +49,9 @@ namespace Startupba.Services.Database
 
         [ForeignKey("StartupId")]
         public Startup? Startup { get; set; }
+
+        [ForeignKey("SharedFromBlogPostId")]
+        public BlogPost? SharedFromBlogPost { get; set; }
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<BlogPostLike> BlogPostLikes { get; set; } = new List<BlogPostLike>();

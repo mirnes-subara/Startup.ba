@@ -387,6 +387,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           dateFormat.format(post.createdAt),
                           style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                         ),
+                        if (post.isRepost) ...[
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlogDetailsScreen(
+                                    blogPostId: post.sharedFromBlogPostId!,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Shared from ${post.sharedFromAuthorName?.isNotEmpty == true ? post.sharedFromAuthorName! : 'original post'}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

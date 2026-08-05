@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Startupba.Services.Database;
 
@@ -11,9 +12,11 @@ using Startupba.Services.Database;
 namespace Startupba.Services.Migrations
 {
     [DbContext(typeof(StartupbaDbContext))]
-    partial class StartupbaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260805194329_AddBlogPostSharedFrom")]
+    partial class AddBlogPostSharedFrom
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

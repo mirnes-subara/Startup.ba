@@ -156,6 +156,29 @@ class _BlogListScreenState extends State<BlogListScreen> {
                                             Text(post.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                             const SizedBox(height: 4),
                                             Text('by ${post.authorName}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                            if (post.isRepost) ...[
+                                              const SizedBox(height: 2),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => BlogDetailsScreen(
+                                                        blogPostId: post.sharedFromBlogPostId!,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  'Shared from ${post.sharedFromAuthorName?.isNotEmpty == true ? post.sharedFromAuthorName! : 'original'}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.primary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                             const SizedBox(height: 8),
                                             Row(
                                               children: [

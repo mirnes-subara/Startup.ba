@@ -12,6 +12,10 @@ namespace Startupba.Model.Responses
         public int? StartupId { get; set; }
         public string? StartupName { get; set; }
 
+        public int? SharedFromBlogPostId { get; set; }
+        public string? SharedFromTitle { get; set; }
+        public string? SharedFromAuthorName { get; set; }
+
         public string Title { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public byte[]? ImageData { get; set; }

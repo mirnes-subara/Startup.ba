@@ -28,6 +28,8 @@ namespace Startupba.Services.Services
         private IQueryable<BlogPost> BaseQuery => _context.BlogPosts
             .Include(bp => bp.Author)
             .Include(bp => bp.Startup)
+            .Include(bp => bp.SharedFromBlogPost)
+                .ThenInclude(o => o!.Author)
             .Include(bp => bp.Comments)
             .Include(bp => bp.BlogPostLikes);
 
@@ -88,7 +90,6 @@ namespace Startupba.Services.Services
 
             if (search.IncludeInactive == true)
             {
-                // Admin: show all unless an explicit IsActive filter is provided
                 if (search.IsActive.HasValue)
                 {
                     query = query.Where(bp => bp.IsActive == search.IsActive.Value);
@@ -96,11 +97,9 @@ namespace Startupba.Services.Services
             }
             else
             {
-                // Public default: only active posts
                 query = query.Where(bp => bp.IsActive == (search.IsActive ?? true));
             }
 
-            // Newest first
             return query.OrderByDescending(bp => bp.Id);
         }
 
@@ -111,6 +110,94 @@ namespace Startupba.Services.Services
                 return null;
 
             return MapToResponse(entity);
+        }
+
+        public override async Task<BlogPostResponse> CreateAsync(BlogPostUpsertRequest request)
+        {
+            if (request.SharedFromBlogPostId.HasValue)
+            {
+                var originalId = request.SharedFromBlogPostId.Value;
+                var original = await _context.BlogPosts
+                    .Include(bp => bp.Author)
+                    .FirstOrDefaultAsync(bp => bp.Id == originalId && bp.IsActive);
+
+                if (original == null)
+                {
+                    throw new InvalidOperationException("Original blog post does not exist or is inactive.");
+                }
+
+                // Always link to the root post when sharing a repost
+                if (original.SharedFromBlogPostId.HasValue)
+                {
+                    originalId = original.SharedFromBlogPostId.Value;
+                    original = await _context.BlogPosts
+                        .Include(bp => bp.Author)
+                        .FirstOrDefaultAsync(bp => bp.Id == originalId && bp.IsActive);
+                    if (original == null)
+                    {
+                        throw new InvalidOperationException("Original blog post does not exist or is inactive.");
+                    }
+                    request.SharedFromBlogPostId = originalId;
+                }
+
+                if (original.AuthorId == request.AuthorId)
+                {
+                    throw new InvalidOperationException("You cannot share your own blog post.");
+                }
+
+                var existingShare = await BaseQuery.FirstOrDefaultAsync(bp =>
+                    bp.AuthorId == request.AuthorId
+                    && bp.SharedFromBlogPostId == originalId
+                    && bp.IsActive);
+
+                if (existingShare != null)
+                {
+                    return MapToResponse(existingShare);
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Title))
+                {
+                    var sharedTitle = $"Shared: {original.Title}";
+                    request.Title = sharedTitle.Length > 200
+                        ? sharedTitle.Substring(0, 200)
+                        : sharedTitle;
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Content))
+                {
+                    var excerpt = original.Content.Length > 280
+                        ? original.Content.Substring(0, 280) + "…"
+                        : original.Content;
+                    request.Content = excerpt;
+                }
+
+                if (!request.StartupId.HasValue)
+                {
+                    request.StartupId = original.StartupId;
+                }
+
+                if (request.ImageData == null || request.ImageData.Length == 0)
+                {
+                    request.ImageData = original.ImageData;
+                }
+
+                request.IsActive = true;
+            }
+            else if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Content))
+            {
+                throw new InvalidOperationException("Title and content are required.");
+            }
+
+            var entity = new BlogPost();
+            MapInsertToEntity(entity, request);
+            _context.BlogPosts.Add(entity);
+
+            await BeforeInsert(entity, request);
+
+            await _context.SaveChangesAsync();
+
+            return await GetByIdAsync(entity.Id)
+                ?? MapToResponse(entity);
         }
 
         protected BlogPostResponse MapToResponse(BlogPost entity)
@@ -125,6 +212,17 @@ namespace Startupba.Services.Services
             response.StartupName = entity.Startup?.Name;
             response.LikeCount = entity.BlogPostLikes?.Count ?? 0;
             response.CommentCount = entity.Comments?.Count(c => c.IsActive) ?? 0;
+
+            response.SharedFromBlogPostId = entity.SharedFromBlogPostId;
+            if (entity.SharedFromBlogPost != null)
+            {
+                response.SharedFromTitle = entity.SharedFromBlogPost.Title;
+                if (entity.SharedFromBlogPost.Author != null)
+                {
+                    response.SharedFromAuthorName =
+                        $"{entity.SharedFromBlogPost.Author.FirstName} {entity.SharedFromBlogPost.Author.LastName}".Trim();
+                }
+            }
 
             var userIdClaim = _httpContextAccessor.HttpContext?.User
                 ?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -147,6 +245,12 @@ namespace Startupba.Services.Services
             {
                 throw new InvalidOperationException("Startup does not exist.");
             }
+
+            if (request.SharedFromBlogPostId.HasValue
+                && !await _context.BlogPosts.AnyAsync(bp => bp.Id == request.SharedFromBlogPostId.Value))
+            {
+                throw new InvalidOperationException("Original blog post does not exist.");
+            }
         }
 
         protected override async Task BeforeUpdate(BlogPost entity, BlogPostUpsertRequest request)
@@ -159,6 +263,11 @@ namespace Startupba.Services.Services
             if (request.StartupId.HasValue && !await _context.Startups.AnyAsync(s => s.Id == request.StartupId.Value))
             {
                 throw new InvalidOperationException("Startup does not exist.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Content))
+            {
+                throw new InvalidOperationException("Title and content are required.");
             }
         }
 
@@ -182,7 +291,7 @@ namespace Startupba.Services.Services
 
             if (await _context.BlogPostLikes.AnyAsync(l => l.BlogPostId == blogPostId && l.UserId == userId))
             {
-                return false; // already liked
+                return false;
             }
 
             _context.BlogPostLikes.Add(new BlogPostLike

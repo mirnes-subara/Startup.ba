@@ -9,11 +9,15 @@ namespace Startupba.Model.Requests
 
         public int? StartupId { get; set; }
 
-        [Required]
+        /// <summary>
+        /// When set, creates an in-app repost of this blog post.
+        /// Title/content/image/startup may be auto-filled from the original.
+        /// </summary>
+        public int? SharedFromBlogPostId { get; set; }
+
         [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
-        [Required]
         [MaxLength(4000)]
         public string Content { get; set; } = string.Empty;
 

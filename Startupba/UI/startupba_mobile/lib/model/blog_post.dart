@@ -9,6 +9,9 @@ class BlogPost {
   final String authorName;
   final int? startupId;
   final String? startupName;
+  final int? sharedFromBlogPostId;
+  final String? sharedFromTitle;
+  final String? sharedFromAuthorName;
   final String title;
   final String content;
   final String? imageData;
@@ -25,6 +28,9 @@ class BlogPost {
     this.authorName = '',
     this.startupId,
     this.startupName,
+    this.sharedFromBlogPostId,
+    this.sharedFromTitle,
+    this.sharedFromAuthorName,
     this.title = '',
     this.content = '',
     this.imageData,
@@ -35,6 +41,8 @@ class BlogPost {
     this.commentCount = 0,
     this.isLiked = false,
   });
+
+  bool get isRepost => sharedFromBlogPostId != null;
 
   BlogPost copyWith({
     int? likeCount,
@@ -47,6 +55,9 @@ class BlogPost {
       authorName: authorName,
       startupId: startupId,
       startupName: startupName,
+      sharedFromBlogPostId: sharedFromBlogPostId,
+      sharedFromTitle: sharedFromTitle,
+      sharedFromAuthorName: sharedFromAuthorName,
       title: title,
       content: content,
       imageData: imageData,

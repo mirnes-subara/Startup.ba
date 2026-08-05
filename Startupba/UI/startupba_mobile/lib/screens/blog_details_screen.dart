@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:startupba_mobile/model/blog_post.dart';
 import 'package:startupba_mobile/model/comment.dart';
 import 'package:startupba_mobile/providers/blog_post_provider.dart';
@@ -29,6 +27,7 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
   bool _isLiked = false;
   final TextEditingController _commentCtrl = TextEditingController();
   bool _isPosting = false;
+  bool _isSharing = false;
 
   @override
   void initState() {
@@ -100,6 +99,79 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
     if (mounted) setState(() => _isPosting = false);
   }
 
+  Future<void> _shareToFeed() async {
+    final user = UserProvider.currentUser;
+    final post = _post;
+    if (user == null || post == null || _isSharing) return;
+
+    if (post.authorId == user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot share your own post'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Share to feed'),
+        content: const Text(
+          'Repost this blog to your Home feed so others can see you shared it?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Share'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isSharing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final created = await context.read<BlogPostProvider>().insert({
+        'authorId': user.id,
+        'sharedFromBlogPostId': post.id,
+        'isActive': true,
+        'title': '',
+        'content': '',
+      });
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Shared to your feed'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BlogDetailsScreen(blogPostId: created.id),
+        ),
+      );
+    } on Exception catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
@@ -116,66 +188,18 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
       appBar: AppBar(
         title: const Text('Blog Post'),
         actions: [
-          Builder(
-            builder: (shareContext) => IconButton(
-              icon: const Icon(Icons.share_outlined),
-              tooltip: 'Share',
-              onPressed: () async {
-                final buffer = StringBuffer(p.title);
-                buffer.writeln();
-                buffer.writeln();
-                final excerpt = p.content.length > 200
-                    ? '${p.content.substring(0, 200)}…'
-                    : p.content;
-                buffer.writeln(excerpt);
-                if (p.startupName != null && p.startupName!.isNotEmpty) {
-                  buffer.writeln();
-                  buffer.write('About startup: ${p.startupName}');
-                }
-                buffer.writeln();
-                buffer.write('— Shared from Startup.ba');
-                final text = buffer.toString();
-                final box = shareContext.findRenderObject() as RenderBox?;
-                final origin = box != null
-                    ? box.localToGlobal(Offset.zero) & box.size
-                    : null;
-                try {
-                  await SharePlus.instance.share(
-                    ShareParams(
-                      text: text,
-                      subject: p.title,
-                      sharePositionOrigin: origin,
-                    ),
-                  );
-                } catch (e, st) {
-                  debugPrint('Share failed: $e\n$st');
-                  try {
-                    await Clipboard.setData(ClipboardData(text: text));
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Copied to clipboard — paste anywhere to share',
-                          ),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                    }
-                  } catch (clipboardError) {
-                    debugPrint('Clipboard fallback failed: $clipboardError');
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Could not open the share sheet'),
-                          backgroundColor: AppColors.danger,
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
+          if (!isAuthor)
+            IconButton(
+              icon: _isSharing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.share_outlined),
+              tooltip: 'Share to feed',
+              onPressed: _isSharing ? null : _shareToFeed,
             ),
-          ),
           if (isAuthor)
             IconButton(
               icon: const Icon(Icons.edit),
@@ -215,6 +239,44 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                       Text(dateFormat.format(p.createdAt), style: TextStyle(fontSize: 13, color: Colors.grey[400])),
                     ],
                   ),
+                  if (p.isRepost) ...[
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BlogDetailsScreen(
+                              blogPostId: p.sharedFromBlogPostId!,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.repeat, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Shared from ${p.sharedFromAuthorName?.isNotEmpty == true ? p.sharedFromAuthorName! : 'original post'}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   if (p.startupName != null && p.startupId != null) ...[
                     const SizedBox(height: 8),
                     GestureDetector(
