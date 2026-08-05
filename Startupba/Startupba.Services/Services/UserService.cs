@@ -145,21 +145,22 @@ namespace Startupba.Services.Services
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Assign roles if provided
-            if (request.RoleIds != null && request.RoleIds.Any())
+            // Assign roles: default to User role (RoleId = 2) if no roles specified
+            var roleIdsToAssign = (request.RoleIds != null && request.RoleIds.Any())
+                ? request.RoleIds
+                : new List<int> { 2 }; // Default to 'User' role
+
+            foreach (var roleId in roleIdsToAssign)
             {
-                foreach (var roleId in request.RoleIds)
+                var userRole = new UserRole
                 {
-                    var userRole = new UserRole
-                    {
-                        UserId = user.Id,
-                        RoleId = roleId,
-                        DateAssigned = DateTime.UtcNow
-                    };
-                    _context.UserRoles.Add(userRole);
-                }
-                await _context.SaveChangesAsync();
+                    UserId = user.Id,
+                    RoleId = roleId,
+                    DateAssigned = DateTime.UtcNow
+                };
+                _context.UserRoles.Add(userRole);
             }
+            await _context.SaveChangesAsync();
 
             return await GetUserResponseWithRolesAsync(user.Id);
         }

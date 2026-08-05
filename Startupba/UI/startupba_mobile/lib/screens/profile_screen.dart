@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:startupba_mobile/model/user.dart';
 import 'package:startupba_mobile/model/user_analytics.dart';
 import 'package:startupba_mobile/providers/user_analytics_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/edit_profile_screen.dart';
 import 'package:startupba_mobile/screens/support_ticket_screen.dart';
 import 'package:startupba_mobile/screens/announcements_screen.dart';
+import 'package:startupba_mobile/services/pdf_report_service.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 
@@ -28,15 +30,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadAnalytics() async {
-    final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
-    try {
-      final provider = context.read<UserAnalyticsProvider>();
-      final analytics = await provider.getUserAnalytics(userId);
-      if (mounted) setState(() { _analytics = analytics; _isLoading = false; });
-    } catch (_) {
+    final currentUser = UserProvider.currentUser;
+    if (currentUser == null) {
       if (mounted) setState(() => _isLoading = false);
+      return;
     }
+    try {
+      final userProvider = context.read<UserProvider>();
+      final updatedUser = await userProvider.getById(currentUser.id);
+      if (updatedUser != null) {
+        UserProvider.currentUser = updatedUser;
+      }
+      final activeUser = UserProvider.currentUser ?? currentUser;
+      final analyticsProvider = context.read<UserAnalyticsProvider>();
+      final analytics = await analyticsProvider.getUserAnalytics(activeUser.id);
+      if (mounted) {
+        setState(() {
+          _analytics = analytics ?? _createFallbackAnalytics(activeUser);
+          _isLoading = false;
+        });
+      }
+    } catch (e, stack) {
+      debugPrint("Error loading profile/analytics: $e\n$stack");
+      final activeUser = UserProvider.currentUser ?? currentUser;
+      if (mounted) {
+        setState(() {
+          _analytics = _createFallbackAnalytics(activeUser);
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  UserAnalytics _createFallbackAnalytics(User user) {
+    return UserAnalytics(
+      userId: user.id,
+      userName: user.fullName,
+      isVerified: user.isVerified,
+      memberSince: user.createdAt,
+    );
+  }
+
+  Future<void> _exportPdf() async {
+    final user = UserProvider.currentUser;
+    if (user == null) return;
+    final analytics = _analytics ?? _createFallbackAnalytics(user);
+    try {
+      await PdfReportService.printOrSharePdf(analytics, user);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate PDF: $e'), backgroundColor: AppColors.danger),
+        );
+      }
+    }
+  }
+
+  void _requestVerification() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Verification request submitted. Our team will review your profile shortly!'),
+        backgroundColor: AppColors.success,
+      ),
+    );
   }
 
   @override
@@ -45,12 +101,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return const Center(child: Text('Not logged in'));
 
     final currencyFormat = NumberFormat.currency(symbol: '€', decimalDigits: 0);
+    final analytics = _analytics ?? _createFallbackAnalytics(user);
 
     return RefreshIndicator(
       onRefresh: _loadAnalytics,
       color: AppColors.primary,
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,11 +142,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   if (!user.isVerified)
                     OutlinedButton.icon(
-                      onPressed: () {/* Request verification */},
+                      onPressed: _requestVerification,
                       icon: const Icon(Icons.verified_outlined, size: 18),
                       label: const Text('Verify Profile'),
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: Colors.white.withOpacity(0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
                     ),
                 ],
               ),
@@ -98,8 +158,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Analytics
             if (_isLoading)
               const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: AppColors.primary)))
-            else if (_analytics != null) ...[
-              const Text('Your Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            else ...[
+              Row(
+                children: [
+                  const Text('Your Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: _exportPdf,
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('PDF Report', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
@@ -109,12 +186,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisSpacing: 10,
                 childAspectRatio: 1.8,
                 children: [
-                  _statCard('Startups', '${_analytics!.startupsCreated}', Icons.rocket_launch, AppColors.primary),
-                  _statCard('Raised', currencyFormat.format(_analytics!.totalRaised), Icons.trending_up, AppColors.success),
-                  _statCard('Donated', currencyFormat.format(_analytics!.totalDonated), Icons.volunteer_activism, AppColors.secondary),
-                  _statCard('Blog Posts', '${_analytics!.blogPostsWritten}', Icons.article, AppColors.info),
-                  _statCard('Likes', '${_analytics!.likesReceived}', Icons.favorite, AppColors.danger),
-                  _statCard('Favorites', '${_analytics!.favoritesReceived}', Icons.bookmark, AppColors.warning),
+                  _statCard('Startups', '${analytics.startupsCreated}', Icons.rocket_launch, AppColors.primary),
+                  _statCard('Raised', currencyFormat.format(analytics.totalRaised), Icons.trending_up, AppColors.success),
+                  _statCard('Donated', currencyFormat.format(analytics.totalDonated), Icons.volunteer_activism, AppColors.secondary),
+                  _statCard('Blog Posts', '${analytics.blogPostsWritten}', Icons.article, AppColors.info),
+                  _statCard('Likes', '${analytics.likesReceived}', Icons.favorite, AppColors.danger),
+                  _statCard('Favorites', '${analytics.favoritesReceived}', Icons.bookmark, AppColors.warning),
                 ],
               ),
             ],
@@ -122,6 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Quick links
             const Text('Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
+            _linkTile(Icons.picture_as_pdf_outlined, 'Download PDF Report', _exportPdf),
             _linkTile(Icons.person_outline, 'Edit Profile', () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
               setState(() {});

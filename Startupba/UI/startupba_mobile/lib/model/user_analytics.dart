@@ -80,21 +80,28 @@ class UserStartupSummary {
   Map<String, dynamic> toJson() => _$UserStartupSummaryToJson(this);
 }
 
-@JsonSerializable()
 class MonthlyDonationData {
-  final int year;
-  final int month;
-  final double total;
-  final int count;
+  final String month;
+  final double amount;
+  final int donationCount;
 
   MonthlyDonationData({
-    this.year = 0,
-    this.month = 0,
-    this.total = 0,
-    this.count = 0,
+    this.month = '',
+    this.amount = 0.0,
+    this.donationCount = 0,
   });
 
-  factory MonthlyDonationData.fromJson(Map<String, dynamic> json) =>
-      _$MonthlyDonationDataFromJson(json);
-  Map<String, dynamic> toJson() => _$MonthlyDonationDataToJson(this);
+  factory MonthlyDonationData.fromJson(Map<String, dynamic> json) {
+    return MonthlyDonationData(
+      month: json['month']?.toString() ?? json['Month']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? (json['total'] as num?)?.toDouble() ?? 0.0,
+      donationCount: (json['donationCount'] as num?)?.toInt() ?? (json['count'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'month': month,
+    'amount': amount,
+    'donationCount': donationCount,
+  };
 }

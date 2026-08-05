@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/model/city.dart';
@@ -6,6 +9,7 @@ import 'package:startupba_mobile/providers/city_provider.dart';
 import 'package:startupba_mobile/providers/gender_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/widgets/base_image.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePass = true;
   bool _obscureConfirm = true;
+  String? _pictureBase64;
   List<City> _cities = [];
   List<Gender> _genders = [];
   City? _selectedCity;
@@ -65,6 +70,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.single;
+      List<int>? bytes = file.bytes;
+      if (bytes == null && file.path != null && file.path!.isNotEmpty) {
+        bytes = await File(file.path!).readAsBytes();
+      }
+      if (bytes != null) {
+        setState(() => _pictureBase64 = base64Encode(bytes!));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load the selected image')),
+        );
+      }
+    }
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCity == null || _selectedGender == null) {
@@ -87,6 +117,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         "phoneNumber": _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         "cityId": _selectedCity!.id,
         "genderId": _selectedGender!.id,
+        "picture": _pictureBase64,
+        "roleIds": [2],
+        "isActive": true,
       });
 
       if (mounted) {
@@ -171,6 +204,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Text(
                             'Fill in your details to get started',
                             style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          ),
+                          const SizedBox(height: 20),
+                          // Profile Picture Picker
+                          Center(
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 46,
+                                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                                  child: _pictureBase64 != null
+                                      ? ClipOval(
+                                          child: BaseImage(
+                                            base64Data: _pictureBase64,
+                                            width: 88,
+                                            height: 88,
+                                            borderRadius: 44,
+                                          ),
+                                        )
+                                      : const Icon(Icons.person_outline, size: 48, color: AppColors.primary),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: _pickImage,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 18),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Center(
+                            child: Text(
+                              'Tap camera icon to add profile picture',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                            ),
                           ),
                           const SizedBox(height: 24),
                           // Name row

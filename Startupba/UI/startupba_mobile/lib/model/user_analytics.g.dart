@@ -86,20 +86,3 @@ Map<String, dynamic> _$UserStartupSummaryToJson(UserStartupSummary instance) =>
       'likeCount': instance.likeCount,
       'favoriteCount': instance.favoriteCount,
     };
-
-MonthlyDonationData _$MonthlyDonationDataFromJson(Map<String, dynamic> json) =>
-    MonthlyDonationData(
-      year: (json['year'] as num?)?.toInt() ?? 0,
-      month: (json['month'] as num?)?.toInt() ?? 0,
-      total: (json['total'] as num?)?.toDouble() ?? 0,
-      count: (json['count'] as num?)?.toInt() ?? 0,
-    );
-
-Map<String, dynamic> _$MonthlyDonationDataToJson(
-  MonthlyDonationData instance,
-) => <String, dynamic>{
-  'year': instance.year,
-  'month': instance.month,
-  'total': instance.total,
-  'count': instance.count,
-};

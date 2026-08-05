@@ -117,15 +117,42 @@ abstract class BaseProvider<T> with ChangeNotifier {
     } else if (response.statusCode == 401) {
       throw Exception("Please check your credentials and try again.");
     } else {
-      String message = "Something went wrong, please try again later!";
+      String message = "Something went wrong (${response.statusCode})";
       try {
-        final body = jsonDecode(response.body);
-        if (body is Map && body['message'] != null) {
-          message = body['message'].toString();
-        } else if (body is Map && body['title'] != null) {
-          message = body['title'].toString();
+        if (response.body.isNotEmpty) {
+          final body = jsonDecode(response.body);
+          if (body is Map) {
+            if (body['errors'] != null && body['errors'] is Map) {
+              final Map<String, dynamic> errorsMap = body['errors'];
+              final List<String> errorMessages = [];
+              errorsMap.forEach((key, value) {
+                if (value is List && value.isNotEmpty) {
+                  errorMessages.add(value.map((e) => e.toString()).join(", "));
+                } else if (value is String) {
+                  errorMessages.add(value);
+                }
+              });
+              if (errorMessages.isNotEmpty) {
+                message = errorMessages.join("\n");
+              }
+            } else if (body['userText'] != null) {
+              message = body['userText'].toString();
+            } else if (body['message'] != null) {
+              message = body['message'].toString();
+            } else if (body['title'] != null) {
+              message = body['title'].toString();
+            } else if (body['detail'] != null) {
+              message = body['detail'].toString();
+            }
+          } else if (body is String && body.trim().isNotEmpty) {
+            message = body;
+          }
         }
-      } catch (_) {}
+      } catch (_) {
+        if (response.body.trim().isNotEmpty) {
+          message = response.body;
+        }
+      }
       throw Exception(message);
     }
   }
