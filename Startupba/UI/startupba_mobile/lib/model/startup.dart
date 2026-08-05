@@ -2,6 +2,16 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'startup.g.dart';
 
+/// Well-known startup status IDs (kept in sync with API StartupStatuses).
+class StartupStatusIds {
+  static const int draft = 1;
+  static const int pending = 2;
+  static const int approved = 3;
+  static const int rejected = 4;
+  static const int paused = 5;
+  static const int completed = 6;
+}
+
 @JsonSerializable()
 class Startup {
   final int id;

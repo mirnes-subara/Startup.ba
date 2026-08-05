@@ -115,7 +115,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (featured.isEmpty) {
         try {
           final startupResult = await startupProvider.get(
-            filter: {'pageSize': '6', 'isActive': 'true'},
+            filter: {
+              'pageSize': '6',
+              'isActive': 'true',
+              'statusId': StartupStatusIds.approved.toString(),
+            },
           );
           featured = startupResult.items;
         } catch (_) {}

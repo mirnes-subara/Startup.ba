@@ -108,6 +108,21 @@ namespace Startupba.Services.Services
             {
                 query = query.Where(s => s.StatusId == search.StatusId.Value);
             }
+            else if (!search.FounderId.HasValue)
+            {
+                // Public browse (Home/Explore): hide non-discoverable statuses.
+                // Admins listing without a status filter still see everything.
+                var isAdmin = _httpContextAccessor.HttpContext?.User
+                    ?.IsInRole("Administrator") == true;
+                if (!isAdmin)
+                {
+                    query = query.Where(s =>
+                        s.StatusId != StartupStatuses.Pending
+                        && s.StatusId != StartupStatuses.Rejected
+                        && s.StatusId != StartupStatuses.Paused
+                        && s.StatusId != StartupStatuses.Draft);
+                }
+            }
 
             if (search.MinTargetAmount.HasValue)
             {

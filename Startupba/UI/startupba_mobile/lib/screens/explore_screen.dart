@@ -60,6 +60,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         'page': '0',
         'pageSize': '10',
         'isActive': 'true',
+        'statusId': StartupStatusIds.approved.toString(),
       };
       if (_selectedCategoryId != null) {
         filter['categoryId'] = _selectedCategoryId.toString();
@@ -108,6 +109,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         'page': (_page + 1).toString(),
         'pageSize': '10',
         'isActive': 'true',
+        'statusId': StartupStatusIds.approved.toString(),
       };
       if (_selectedCategoryId != null) {
         filter['categoryId'] = _selectedCategoryId.toString();
