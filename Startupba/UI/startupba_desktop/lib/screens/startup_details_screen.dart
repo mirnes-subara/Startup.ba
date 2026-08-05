@@ -37,6 +37,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       await action();
@@ -63,9 +64,24 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ElevatedButton.icon(
           onPressed: _busy
               ? null
-              : () => _run(() async {
-                    await provider.approve(_startup.id);
-                  }),
+              : () async {
+                  final ok = await ConfirmDialog.show(
+                    context,
+                    title: 'Approve startup',
+                    message: 'Approve "${_startup.name}" and make it visible?',
+                    confirmLabel: 'Approve',
+                  );
+                  if (!ok || !mounted) return;
+                  await _run(() async {
+                    final updated = await provider.approve(_startup.id);
+                    if (mounted) setState(() => _startup = updated);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Startup approved')),
+                      );
+                    }
+                  });
+                },
           icon: const Icon(Icons.check),
           label: const Text('Approve'),
         ),
@@ -75,17 +91,34 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           onPressed: _busy
               ? null
               : () async {
-                  final reason = await InputDialog.show(
-                    context,
-                    title: 'Reject startup',
-                    hint: 'Rejection reason',
-                    maxLines: 3,
-                    confirmLabel: 'Reject',
-                  );
-                  if (reason == null) return;
-                  await _run(() async {
-                    await provider.reject(_startup.id, reason);
-                  });
+                  setState(() => _busy = true);
+                  try {
+                    final reason = await InputDialog.show(
+                      context,
+                      title: 'Reject startup',
+                      hint: 'Rejection reason',
+                      maxLines: 3,
+                      confirmLabel: 'Reject',
+                    );
+                    if (reason == null) return;
+                    final updated = await provider.reject(_startup.id, reason);
+                    if (mounted) {
+                      setState(() => _startup = updated);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Startup rejected')),
+                      );
+                    }
+                    await _reload();
+                  } catch (e) {
+                    if (mounted) {
+                      await ErrorDialog.show(
+                        context,
+                        e.toString().replaceFirst('Exception: ', ''),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _busy = false);
+                  }
                 },
           icon: const Icon(Icons.close),
           label: const Text('Reject'),
@@ -97,7 +130,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           onPressed: _busy
               ? null
               : () => _run(() async {
-                    await provider.pause(_startup.id);
+                    final updated = await provider.pause(_startup.id);
+                    if (mounted) setState(() => _startup = updated);
                   }),
           icon: const Icon(Icons.pause),
           label: const Text('Pause'),
@@ -109,7 +143,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           onPressed: _busy
               ? null
               : () => _run(() async {
-                    await provider.resume(_startup.id);
+                    final updated = await provider.resume(_startup.id);
+                    if (mounted) setState(() => _startup = updated);
                   }),
           icon: const Icon(Icons.play_arrow),
           label: const Text('Resume'),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:startupba_desktop/providers/auth_provider.dart';
+import 'package:startupba_desktop/providers/notification_provider.dart';
 import 'package:startupba_desktop/providers/user_provider.dart';
 import 'package:startupba_desktop/screens/announcement_list_screen.dart';
 import 'package:startupba_desktop/screens/blog_list_screen.dart';
@@ -7,6 +9,7 @@ import 'package:startupba_desktop/screens/category_list_screen.dart';
 import 'package:startupba_desktop/screens/dashboard_screen.dart';
 import 'package:startupba_desktop/screens/donation_list_screen.dart';
 import 'package:startupba_desktop/screens/login_screen.dart';
+import 'package:startupba_desktop/screens/notifications_screen.dart';
 import 'package:startupba_desktop/screens/payment_list_screen.dart';
 import 'package:startupba_desktop/screens/report_list_screen.dart';
 import 'package:startupba_desktop/screens/settings_screen.dart';
@@ -215,14 +218,17 @@ class MasterScreen extends StatelessWidget {
                           icon: const Icon(Icons.arrow_back),
                           onPressed: () => Navigator.pop(context),
                         ),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
+                      const _NotificationBell(),
                     ],
                   ),
                 ),
@@ -236,6 +242,60 @@ class MasterScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NotificationBell extends StatefulWidget {
+  const _NotificationBell();
+
+  @override
+  State<_NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<_NotificationBell> {
+  int _unread = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 30));
+      if (!mounted) return false;
+      await _refresh();
+      return mounted;
+    });
+  }
+
+  Future<void> _refresh() async {
+    final userId = UserProvider.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final count =
+          await context.read<NotificationProvider>().getUnreadCount(userId);
+      if (mounted) setState(() => _unread = count);
+    } catch (_) {}
+  }
+
+  Future<void> _open() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
+    if (mounted) await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Notifications',
+      onPressed: _open,
+      icon: Badge(
+        isLabelVisible: _unread > 0,
+        label: Text(_unread > 99 ? '99+' : '$_unread'),
+        child: const Icon(Icons.notifications_outlined),
       ),
     );
   }

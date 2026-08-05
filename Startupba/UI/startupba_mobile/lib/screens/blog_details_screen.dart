@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:startupba_mobile/model/blog_post.dart';
 import 'package:startupba_mobile/model/comment.dart';
 import 'package:startupba_mobile/providers/blog_post_provider.dart';
@@ -46,7 +48,14 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
       final commentProvider = context.read<CommentProvider>();
       final post = await blogProvider.getById(widget.blogPostId);
       final comments = await commentProvider.get(filter: {'blogPostId': widget.blogPostId.toString(), 'pageSize': '100'});
-      if (mounted) setState(() { _post = post; _comments = comments.items; _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _post = post;
+          _comments = comments.items;
+          _isLiked = post?.isLiked ?? false;
+          _isLoading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -62,8 +71,16 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
       } else {
         await provider.like(_post!.id, user.id);
       }
-      setState(() => _isLiked = !_isLiked);
-      _loadPost();
+      if (!mounted) return;
+      setState(() {
+        _isLiked = !_isLiked;
+        _post = _post!.copyWith(
+          isLiked: _isLiked,
+          likeCount: _isLiked
+              ? _post!.likeCount + 1
+              : (_post!.likeCount - 1).clamp(0, 1 << 30),
+        );
+      });
     } catch (_) {}
   }
 
@@ -99,6 +116,66 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
       appBar: AppBar(
         title: const Text('Blog Post'),
         actions: [
+          Builder(
+            builder: (shareContext) => IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Share',
+              onPressed: () async {
+                final buffer = StringBuffer(p.title);
+                buffer.writeln();
+                buffer.writeln();
+                final excerpt = p.content.length > 200
+                    ? '${p.content.substring(0, 200)}…'
+                    : p.content;
+                buffer.writeln(excerpt);
+                if (p.startupName != null && p.startupName!.isNotEmpty) {
+                  buffer.writeln();
+                  buffer.write('About startup: ${p.startupName}');
+                }
+                buffer.writeln();
+                buffer.write('— Shared from Startup.ba');
+                final text = buffer.toString();
+                final box = shareContext.findRenderObject() as RenderBox?;
+                final origin = box != null
+                    ? box.localToGlobal(Offset.zero) & box.size
+                    : null;
+                try {
+                  await SharePlus.instance.share(
+                    ShareParams(
+                      text: text,
+                      subject: p.title,
+                      sharePositionOrigin: origin,
+                    ),
+                  );
+                } catch (e, st) {
+                  debugPrint('Share failed: $e\n$st');
+                  try {
+                    await Clipboard.setData(ClipboardData(text: text));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Copied to clipboard — paste anywhere to share',
+                          ),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  } catch (clipboardError) {
+                    debugPrint('Clipboard fallback failed: $clipboardError');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open the share sheet'),
+                          backgroundColor: AppColors.danger,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
+          ),
           if (isAuthor)
             IconButton(
               icon: const Icon(Icons.edit),

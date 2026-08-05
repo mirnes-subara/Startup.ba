@@ -38,6 +38,7 @@ class _BlogListScreenState extends State<BlogListScreen> {
           'Page': _page,
           'PageSize': _pageSize,
           'IncludeTotalCount': true,
+          'IncludeInactive': true,
         },
       );
       if (mounted) {

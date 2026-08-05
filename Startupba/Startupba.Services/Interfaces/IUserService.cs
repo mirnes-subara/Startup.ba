@@ -15,5 +15,6 @@ namespace Startupba.Services.Interfaces
         Task<UserResponse?> UpdateAsync(int id, UserUpsertRequest request);
         Task<bool> DeleteAsync(int id);
         Task<UserResponse?> VerifyAsync(int id);
+        Task<UserResponse?> RequestVerificationAsync(int id);
     }
 }

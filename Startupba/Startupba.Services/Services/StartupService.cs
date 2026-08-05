@@ -235,30 +235,7 @@ namespace Startupba.Services.Services
         {
             var result = await base.CreateAsync(request);
 
-            // Notify all administrators that a new startup awaits review
-            try
-            {
-                var adminIds = await _context.UserRoles
-                    .Where(ur => ur.Role.Name == "Administrator")
-                    .Select(ur => ur.UserId)
-                    .Distinct()
-                    .ToListAsync();
-
-                foreach (var adminId in adminIds)
-                {
-                    await _notificationService.CreateNotificationAsync(
-                        adminId,
-                        "New Startup Submitted",
-                        $"\"{result.Name}\" has been submitted and is awaiting your review.",
-                        NotificationTypes.StartupSubmitted,
-                        result.Id,
-                        "Startup");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Notification error: {ex.Message}");
-            }
+            await NotifyAdminsStartupSubmittedAsync(result.Id, result.Name);
 
             return result;
         }
@@ -301,9 +278,20 @@ namespace Startupba.Services.Services
 
         public override async Task<StartupResponse?> UpdateAsync(int id, StartupUpsertRequest request)
         {
+            var previousStatusId = await _context.Startups
+                .AsNoTracking()
+                .Where(s => s.Id == id)
+                .Select(s => (int?)s.StatusId)
+                .FirstOrDefaultAsync();
+
             var result = await base.UpdateAsync(id, request);
             if (result == null)
                 return null;
+
+            if (previousStatusId == StartupStatuses.Rejected)
+            {
+                await NotifyAdminsStartupSubmittedAsync(result.Id, result.Name);
+            }
 
             // Reload with navigations so StatusName / CategoryName / etc. are populated
             return await GetByIdAsync(id);
@@ -315,29 +303,46 @@ namespace Startupba.Services.Services
 
         public async Task<StartupResponse?> ApproveAsync(int id)
         {
-            var entity = await BaseQuery.FirstOrDefaultAsync(s => s.Id == id);
-            if (entity == null)
+            if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            if (entity.StatusId != StartupStatuses.Pending)
+            var now = DateTime.Now;
+            decimal? fee = null;
+            var feeSetting = await _context.PlatformSettings
+                .FirstOrDefaultAsync(ps => ps.Key == PlatformSettingKeys.PlatformFeePercent);
+            if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedFee))
+            {
+                fee = parsedFee;
+            }
+
+            int rows;
+            if (fee.HasValue)
+            {
+                var feeValue = fee.Value;
+                rows = await _context.Startups
+                    .Where(s => s.Id == id && s.StatusId == StartupStatuses.Pending)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(x => x.StatusId, StartupStatuses.Approved)
+                        .SetProperty(x => x.ApprovedAt, now)
+                        .SetProperty(x => x.UpdatedAt, now)
+                        .SetProperty(x => x.PlatformFeePercent, feeValue));
+            }
+            else
+            {
+                rows = await _context.Startups
+                    .Where(s => s.Id == id && s.StatusId == StartupStatuses.Pending)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(x => x.StatusId, StartupStatuses.Approved)
+                        .SetProperty(x => x.ApprovedAt, now)
+                        .SetProperty(x => x.UpdatedAt, now));
+            }
+
+            if (rows == 0)
             {
                 throw new InvalidOperationException("Only startups in Pending status can be approved.");
             }
 
-            entity.StatusId = StartupStatuses.Approved;
-            entity.ApprovedAt = DateTime.Now;
-            entity.UpdatedAt = DateTime.Now;
-
-            // Re-snapshot the fee at approval time
-            var feeSetting = await _context.PlatformSettings
-                .FirstOrDefaultAsync(ps => ps.Key == PlatformSettingKeys.PlatformFeePercent);
-            if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var fee))
-            {
-                entity.PlatformFeePercent = fee;
-            }
-
-            await _context.SaveChangesAsync();
-            await _context.Entry(entity).Reference(s => s.Status).LoadAsync();
+            var entity = await BaseQuery.FirstAsync(s => s.Id == id);
 
             await NotifyFounderAsync(entity, "Startup Approved",
                 $"Congratulations! Your startup \"{entity.Name}\" has been approved and is now visible to investors.",
@@ -350,21 +355,23 @@ namespace Startupba.Services.Services
 
         public async Task<StartupResponse?> RejectAsync(int id, StartupRejectRequest request)
         {
-            var entity = await BaseQuery.FirstOrDefaultAsync(s => s.Id == id);
-            if (entity == null)
+            if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            if (entity.StatusId != StartupStatuses.Pending)
+            var now = DateTime.Now;
+            var rows = await _context.Startups
+                .Where(s => s.Id == id && s.StatusId == StartupStatuses.Pending)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.StatusId, StartupStatuses.Rejected)
+                    .SetProperty(x => x.RejectionReason, request.Reason)
+                    .SetProperty(x => x.UpdatedAt, now));
+
+            if (rows == 0)
             {
                 throw new InvalidOperationException("Only startups in Pending status can be rejected.");
             }
 
-            entity.StatusId = StartupStatuses.Rejected;
-            entity.RejectionReason = request.Reason;
-            entity.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            await _context.Entry(entity).Reference(s => s.Status).LoadAsync();
+            var entity = await BaseQuery.FirstAsync(s => s.Id == id);
 
             await NotifyFounderAsync(entity, "Startup Rejected",
                 $"Your startup \"{entity.Name}\" has been rejected. Reason: {request.Reason}",
@@ -377,20 +384,22 @@ namespace Startupba.Services.Services
 
         public async Task<StartupResponse?> PauseAsync(int id)
         {
-            var entity = await BaseQuery.FirstOrDefaultAsync(s => s.Id == id);
-            if (entity == null)
+            if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            if (entity.StatusId != StartupStatuses.Approved)
+            var now = DateTime.Now;
+            var rows = await _context.Startups
+                .Where(s => s.Id == id && s.StatusId == StartupStatuses.Approved)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.StatusId, StartupStatuses.Paused)
+                    .SetProperty(x => x.UpdatedAt, now));
+
+            if (rows == 0)
             {
                 throw new InvalidOperationException("Only startups in Approved status can be paused.");
             }
 
-            entity.StatusId = StartupStatuses.Paused;
-            entity.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            await _context.Entry(entity).Reference(s => s.Status).LoadAsync();
+            var entity = await BaseQuery.FirstAsync(s => s.Id == id);
 
             await NotifyFounderAsync(entity, "Startup Paused",
                 $"Your startup \"{entity.Name}\" has been paused by the administrator.",
@@ -401,26 +410,55 @@ namespace Startupba.Services.Services
 
         public async Task<StartupResponse?> ResumeAsync(int id)
         {
-            var entity = await BaseQuery.FirstOrDefaultAsync(s => s.Id == id);
-            if (entity == null)
+            if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            if (entity.StatusId != StartupStatuses.Paused)
+            var now = DateTime.Now;
+            var rows = await _context.Startups
+                .Where(s => s.Id == id && s.StatusId == StartupStatuses.Paused)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.StatusId, StartupStatuses.Approved)
+                    .SetProperty(x => x.UpdatedAt, now));
+
+            if (rows == 0)
             {
                 throw new InvalidOperationException("Only startups in Paused status can be resumed.");
             }
 
-            entity.StatusId = StartupStatuses.Approved;
-            entity.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            await _context.Entry(entity).Reference(s => s.Status).LoadAsync();
+            var entity = await BaseQuery.FirstAsync(s => s.Id == id);
 
             await NotifyFounderAsync(entity, "Startup Resumed",
                 $"Your startup \"{entity.Name}\" is active again and visible to investors.",
                 NotificationTypes.StartupApproved);
 
             return MapToResponse(entity);
+        }
+
+        private async Task NotifyAdminsStartupSubmittedAsync(int startupId, string startupName)
+        {
+            try
+            {
+                var adminIds = await _context.UserRoles
+                    .Where(ur => ur.Role.Name == "Administrator")
+                    .Select(ur => ur.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var adminId in adminIds)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        adminId,
+                        "New Startup Submitted",
+                        $"\"{startupName}\" has been submitted and is awaiting your review.",
+                        NotificationTypes.StartupSubmitted,
+                        startupId,
+                        "Startup");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Notification error: {ex.Message}");
+            }
         }
 
         private async Task NotifyFounderAsync(Startup entity, string title, string message, int type)

@@ -22,6 +22,7 @@ BlogPost _$BlogPostFromJson(Map<String, dynamic> json) => BlogPost(
       : DateTime.parse(json['updatedAt'] as String),
   likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
   commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
+  isLiked: json['isLiked'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$BlogPostToJson(BlogPost instance) => <String, dynamic>{
@@ -38,4 +39,5 @@ Map<String, dynamic> _$BlogPostToJson(BlogPost instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt?.toIso8601String(),
   'likeCount': instance.likeCount,
   'commentCount': instance.commentCount,
+  'isLiked': instance.isLiked,
 };

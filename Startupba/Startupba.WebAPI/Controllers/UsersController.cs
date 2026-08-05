@@ -3,6 +3,7 @@ using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Startupba.Services.Interfaces;
 using Startupba.Services.Services;
@@ -77,6 +78,27 @@ namespace Startupba.WebAPI.Controllers
         public async Task<ActionResult<UserResponse>> Verify(int id)
         {
             var user = await _userService.VerifyAsync(id);
+
+            if (user == null)
+                return NotFound();
+
+            return user;
+        }
+
+        /// <summary>
+        /// User requests profile verification (self or admin). Notifies administrators once.
+        /// </summary>
+        [HttpPut("{id}/request-verification")]
+        public async Task<ActionResult<UserResponse>> RequestVerification(int id)
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = User.IsInRole("Administrator");
+            if (!isAdmin && (!int.TryParse(claimId, out var callerId) || callerId != id))
+            {
+                return Forbid();
+            }
+
+            var user = await _userService.RequestVerificationAsync(id);
 
             if (user == null)
                 return NotFound();

@@ -32,13 +32,76 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
+  Future<void> _toggleLike(Startup startup) async {
+    final user = UserProvider.currentUser;
+    if (user == null) return;
+    final provider = context.read<StartupProvider>();
+    final index = _featured.indexWhere((s) => s.id == startup.id);
+    if (index < 0) return;
+
+    try {
+      if (startup.isLiked) {
+        await provider.unlike(startup.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _featured[index] = startup.copyWith(
+            isLiked: false,
+            likeCount: (startup.likeCount - 1).clamp(0, 1 << 30),
+          );
+        });
+      } else {
+        await provider.like(startup.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _featured[index] = startup.copyWith(
+            isLiked: true,
+            likeCount: startup.likeCount + 1,
+          );
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleBlogLike(BlogPost post) async {
+    final user = UserProvider.currentUser;
+    if (user == null) return;
+    final provider = context.read<BlogPostProvider>();
+    final index = _posts.indexWhere((p) => p.id == post.id);
+    if (index < 0) return;
+
+    try {
+      if (post.isLiked) {
+        await provider.unlike(post.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _posts[index] = post.copyWith(
+            isLiked: false,
+            likeCount: (post.likeCount - 1).clamp(0, 1 << 30),
+          );
+        });
+      } else {
+        await provider.like(post.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _posts[index] = post.copyWith(
+            isLiked: true,
+            likeCount: post.likeCount + 1,
+          );
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
       final blogProvider = context.read<BlogPostProvider>();
       final startupProvider = context.read<StartupProvider>();
 
-      final blogResult = await blogProvider.get(filter: {'pageSize': '50'});
+      final blogResult = await blogProvider.get(filter: {
+        'pageSize': '50',
+        'isActive': 'true',
+      });
 
       // Load featured / recommended startups
       final userId = UserProvider.currentUser?.id;
@@ -194,16 +257,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _featured.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
+                    final s = _featured[index];
                     return StartupCard(
-                      startup: _featured[index],
+                      startup: s,
                       compact: true,
-                      onTap: () {
-                        Navigator.push(
+                      onLike: () => _toggleLike(s),
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => StartupDetailsScreen(startupId: _featured[index].id),
+                            builder: (_) => StartupDetailsScreen(startupId: s.id),
                           ),
                         );
+                        if (mounted) _loadData();
                       },
                     );
                   },
@@ -393,9 +459,21 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
               child: Row(
                 children: [
-                  Icon(Icons.favorite_border, size: 18, color: Colors.grey[500]),
-                  const SizedBox(width: 4),
-                  Text('${post.likeCount}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  GestureDetector(
+                    onTap: () => _toggleBlogLike(post),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      children: [
+                        Icon(
+                          post.isLiked ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                          color: post.isLiked ? AppColors.danger : Colors.grey[500],
+                        ),
+                        const SizedBox(width: 4),
+                        Text('${post.likeCount}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Icon(Icons.chat_bubble_outline, size: 18, color: Colors.grey[500]),
                   const SizedBox(width: 4),

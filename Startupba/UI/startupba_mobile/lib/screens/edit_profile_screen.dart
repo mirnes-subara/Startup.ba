@@ -111,6 +111,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final provider = context.read<UserProvider>();
       final user = UserProvider.currentUser!;
       await provider.update(user.id, {
+        'username': user.username,
         'firstName': _firstNameCtrl.text.trim(),
         'lastName': _lastNameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -118,6 +119,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'cityId': _selectedCity?.id ?? user.cityId,
         'genderId': _selectedGender?.id ?? user.genderId,
         'picture': _picture,
+        'isActive': user.isActive,
       });
 
       // Refresh user data

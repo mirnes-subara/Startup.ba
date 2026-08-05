@@ -49,9 +49,10 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   int get _targetType {
-    if (widget.startupId != null) return 1;
-    if (widget.blogPostId != null) return 2;
-    if (widget.reportedUserId != null) return 3;
+    // Backend: 0=Startup, 1=BlogPost, 2=User
+    if (widget.startupId != null) return 0;
+    if (widget.blogPostId != null) return 1;
+    if (widget.reportedUserId != null) return 2;
     return 0;
   }
 

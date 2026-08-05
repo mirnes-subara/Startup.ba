@@ -15,6 +15,7 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
   picture: json['picture'] as String?,
   isActive: json['isActive'] as bool? ?? true,
   isVerified: json['isVerified'] as bool? ?? false,
+  isVerificationRequested: json['isVerificationRequested'] as bool? ?? false,
   phoneNumber: json['phoneNumber'] as String?,
   createdAt: DateTime.parse(json['createdAt'] as String),
   lastLoginAt: json['lastLoginAt'] == null
@@ -40,6 +41,7 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
   'picture': instance.picture,
   'isActive': instance.isActive,
   'isVerified': instance.isVerified,
+  'isVerificationRequested': instance.isVerificationRequested,
   'phoneNumber': instance.phoneNumber,
   'createdAt': instance.createdAt.toIso8601String(),
   'lastLoginAt': instance.lastLoginAt?.toIso8601String(),

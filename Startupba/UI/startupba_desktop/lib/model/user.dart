@@ -13,6 +13,7 @@ class User {
   final String? picture;
   final bool isActive;
   final bool isVerified;
+  final bool isVerificationRequested;
   final String? phoneNumber;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
@@ -31,6 +32,7 @@ class User {
     this.picture,
     this.isActive = true,
     this.isVerified = false,
+    this.isVerificationRequested = false,
     this.phoneNumber,
     required this.createdAt,
     this.lastLoginAt,
@@ -45,6 +47,12 @@ class User {
 
   bool get isAdmin =>
       roles.any((r) => r.name.toLowerCase() == 'administrator' || r.id == 1);
+
+  String get verificationLabel {
+    if (isVerified) return 'Verified';
+    if (isVerificationRequested) return 'Pending';
+    return 'Unverified';
+  }
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
   Map<String, dynamic> toJson() => _$UserToJson(this);

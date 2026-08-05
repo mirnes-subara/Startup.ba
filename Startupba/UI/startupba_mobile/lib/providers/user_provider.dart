@@ -40,4 +40,18 @@ class UserProvider extends BaseProvider<User> {
       throw Exception("Authentication failed");
     }
   }
+
+  Future<User> requestVerification(int id) async {
+    var url = "${BaseProvider.baseUrl}$endpoint/$id/request-verification";
+    var uri = Uri.parse(url);
+    var response = await http.put(uri, headers: createHeaders());
+    if (isValidResponse(response)) {
+      final user = fromJson(jsonDecode(response.body));
+      if (currentUser?.id == id) {
+        currentUser = user;
+      }
+      return user;
+    }
+    throw Exception("Failed to request verification");
+  }
 }

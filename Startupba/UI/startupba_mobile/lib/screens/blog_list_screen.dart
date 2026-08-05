@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/model/blog_post.dart';
 import 'package:startupba_mobile/providers/blog_post_provider.dart';
+import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/blog_details_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
@@ -37,13 +38,46 @@ class _BlogListScreenState extends State<BlogListScreen> {
     setState(() => _isLoading = true);
     try {
       final provider = context.read<BlogPostProvider>();
-      final filter = <String, dynamic>{'pageSize': '50'};
-      if (search != null && search.isNotEmpty) filter['searchText'] = search;
+      final filter = <String, dynamic>{
+        'pageSize': '50',
+        'isActive': 'true',
+      };
+      if (search != null && search.isNotEmpty) filter['FTS'] = search;
       final result = await provider.get(filter: filter);
       if (mounted) setState(() { _posts = result.items; _isLoading = false; });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _toggleLike(BlogPost post) async {
+    final user = UserProvider.currentUser;
+    if (user == null) return;
+    final provider = context.read<BlogPostProvider>();
+    final index = _posts.indexWhere((p) => p.id == post.id);
+    if (index < 0) return;
+
+    try {
+      if (post.isLiked) {
+        await provider.unlike(post.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _posts[index] = post.copyWith(
+            isLiked: false,
+            likeCount: (post.likeCount - 1).clamp(0, 1 << 30),
+          );
+        });
+      } else {
+        await provider.like(post.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          _posts[index] = post.copyWith(
+            isLiked: true,
+            likeCount: post.likeCount + 1,
+          );
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -125,9 +159,23 @@ class _BlogListScreenState extends State<BlogListScreen> {
                                             const SizedBox(height: 8),
                                             Row(
                                               children: [
-                                                Icon(Icons.favorite, size: 14, color: AppColors.danger.withOpacity(0.6)),
-                                                const SizedBox(width: 4),
-                                                Text('${post.likeCount}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                                GestureDetector(
+                                                  onTap: () => _toggleLike(post),
+                                                  behavior: HitTestBehavior.opaque,
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        post.isLiked ? Icons.favorite : Icons.favorite_border,
+                                                        size: 14,
+                                                        color: post.isLiked
+                                                            ? AppColors.danger
+                                                            : AppColors.danger.withOpacity(0.6),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text('${post.likeCount}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                                    ],
+                                                  ),
+                                                ),
                                                 const SizedBox(width: 12),
                                                 Icon(Icons.comment, size: 14, color: AppColors.info.withOpacity(0.6)),
                                                 const SizedBox(width: 4),

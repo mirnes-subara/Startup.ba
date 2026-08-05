@@ -68,26 +68,34 @@ class InputDialog {
     String confirmLabel = 'Save',
   }) async {
     final controller = TextEditingController(text: initialValue);
+    var submitted = false;
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(hintText: hint),
-          autofocus: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            maxLines: maxLines,
+            decoration: InputDecoration(hintText: hint),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitted ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: submitted
+                  ? null
+                  : () {
+                      setLocal(() => submitted = true);
+                      Navigator.pop(ctx, controller.text.trim());
+                    },
+              child: Text(confirmLabel),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(confirmLabel),
-          ),
-        ],
       ),
     );
     controller.dispose();

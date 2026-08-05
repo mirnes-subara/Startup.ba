@@ -38,6 +38,11 @@ namespace Startupba.Services.Database
         /// Whether the profile has been verified by the platform.
         /// </summary>
         public bool IsVerified { get; set; } = false;
+
+        /// <summary>
+        /// Whether the user has submitted a verification request awaiting admin review.
+        /// </summary>
+        public bool IsVerificationRequested { get; set; } = false;
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         

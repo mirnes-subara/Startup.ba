@@ -22,22 +22,32 @@ class UsersDetailsScreen extends StatefulWidget {
 }
 
 class _UsersDetailsScreenState extends State<UsersDetailsScreen> {
+  late User _user;
   UserAnalytics? _analytics;
   bool _loading = true;
+  bool _verifying = false;
 
   @override
   void initState() {
     super.initState();
+    _user = widget.user;
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
+      final provider = context.read<UserProvider>();
+      final fresh = await provider.getById(_user.id);
       final data = await context
           .read<AnalyticsProvider>()
-          .getUserAnalytics(widget.user.id);
-      if (mounted) setState(() => _analytics = data);
+          .getUserAnalytics(_user.id);
+      if (mounted) {
+        setState(() {
+          if (fresh != null) _user = fresh;
+          _analytics = data;
+        });
+      }
     } catch (e) {
       if (mounted) {
         await ErrorDialog.show(
@@ -51,9 +61,12 @@ class _UsersDetailsScreenState extends State<UsersDetailsScreen> {
   }
 
   Future<void> _verify() async {
+    if (_verifying) return;
+    setState(() => _verifying = true);
     try {
-      await context.read<UserProvider>().verify(widget.user.id);
+      final updated = await context.read<UserProvider>().verify(_user.id);
       if (mounted) {
+        setState(() => _user = updated);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User verified')),
         );
@@ -66,12 +79,14 @@ class _UsersDetailsScreenState extends State<UsersDetailsScreen> {
           e.toString().replaceFirst('Exception: ', ''),
         );
       }
+    } finally {
+      if (mounted) setState(() => _verifying = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final u = widget.user;
+    final u = _user;
     return MasterScreen(
       title: u.fullName,
       showBackButton: true,
@@ -109,9 +124,7 @@ class _UsersDetailsScreenState extends State<UsersDetailsScreen> {
                                 Wrap(
                                   spacing: 8,
                                   children: [
-                                    StatusChip(
-                                      u.isVerified ? 'Verified' : 'Unverified',
-                                    ),
+                                    StatusChip(u.verificationLabel),
                                     StatusChip(u.isActive ? 'Active' : 'Inactive'),
                                   ],
                                 ),
@@ -120,8 +133,16 @@ class _UsersDetailsScreenState extends State<UsersDetailsScreen> {
                           ),
                           if (!u.isVerified)
                             ElevatedButton(
-                              onPressed: _verify,
-                              child: const Text('Verify user'),
+                              onPressed: _verifying ? null : _verify,
+                              child: _verifying
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Verify user'),
                             ),
                         ],
                       ),

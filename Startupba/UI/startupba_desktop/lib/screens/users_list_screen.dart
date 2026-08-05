@@ -27,6 +27,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
   int _totalCount = 0;
   List<User> _items = [];
   bool _loading = false;
+  int? _verifyingUserId;
 
   @override
   void initState() {
@@ -75,12 +76,14 @@ class _UsersListScreenState extends State<UsersListScreen> {
   }
 
   Future<void> _verify(User user) async {
+    if (_verifyingUserId != null) return;
     final ok = await ConfirmDialog.show(
       context,
       title: 'Verify user',
       message: 'Mark ${user.fullName} as verified?',
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
+    setState(() => _verifyingUserId = user.id);
     try {
       await context.read<UserProvider>().verify(user.id);
       _search();
@@ -91,6 +94,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
           e.toString().replaceFirst('Exception: ', ''),
         );
       }
+    } finally {
+      if (mounted) setState(() => _verifyingUserId = null);
     }
   }
 
@@ -175,7 +180,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                           DataCell(Text(u.fullName)),
                           DataCell(Text(u.email)),
                           DataCell(
-                            StatusChip(u.isVerified ? 'Verified' : 'Unverified'),
+                            StatusChip(u.verificationLabel),
                           ),
                           DataCell(
                             Icon(
@@ -204,8 +209,18 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                 ),
                                 if (!u.isVerified)
                                   TextButton(
-                                    onPressed: () => _verify(u),
-                                    child: const Text('Verify'),
+                                    onPressed: _verifyingUserId != null
+                                        ? null
+                                        : () => _verify(u),
+                                    child: _verifyingUserId == u.id
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text('Verify'),
                                   ),
                                 TextButton(
                                   onPressed: () async {

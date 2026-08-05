@@ -4,17 +4,25 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
 {
     public class BlogPostService : BaseCRUDService<BlogPostResponse, BlogPostSearchObject, BlogPost, BlogPostUpsertRequest, BlogPostUpsertRequest>, IBlogPostService
     {
-        public BlogPostService(StartupbaDbContext context, IMapper mapper) : base(context, mapper)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public BlogPostService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private IQueryable<BlogPost> BaseQuery => _context.BlogPosts
@@ -78,9 +86,18 @@ namespace Startupba.Services.Services
                 query = query.Where(bp => bp.StartupId == search.StartupId.Value);
             }
 
-            if (search.IsActive.HasValue)
+            if (search.IncludeInactive == true)
             {
-                query = query.Where(bp => bp.IsActive == search.IsActive.Value);
+                // Admin: show all unless an explicit IsActive filter is provided
+                if (search.IsActive.HasValue)
+                {
+                    query = query.Where(bp => bp.IsActive == search.IsActive.Value);
+                }
+            }
+            else
+            {
+                // Public default: only active posts
+                query = query.Where(bp => bp.IsActive == (search.IsActive ?? true));
             }
 
             // Newest first
@@ -108,6 +125,13 @@ namespace Startupba.Services.Services
             response.StartupName = entity.Startup?.Name;
             response.LikeCount = entity.BlogPostLikes?.Count ?? 0;
             response.CommentCount = entity.Comments?.Count(c => c.IsActive) ?? 0;
+
+            var userIdClaim = _httpContextAccessor.HttpContext?.User
+                ?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                response.IsLiked = entity.BlogPostLikes?.Any(l => l.UserId == userId) ?? false;
+            }
 
             return response;
         }

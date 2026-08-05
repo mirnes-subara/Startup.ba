@@ -14,6 +14,7 @@ namespace Startupba.Model.Responses
 
         public bool IsActive { get; set; }
         public bool IsVerified { get; set; }
+        public bool IsVerificationRequested { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public string? PhoneNumber { get; set; }

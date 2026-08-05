@@ -9,12 +9,14 @@ import 'package:startupba_mobile/widgets/status_chip.dart';
 class StartupCard extends StatelessWidget {
   final Startup startup;
   final VoidCallback? onTap;
+  final VoidCallback? onLike;
   final bool compact;
 
   const StartupCard({
     super.key,
     required this.startup,
     this.onTap,
+    this.onLike,
     this.compact = false,
   });
 
@@ -42,7 +44,6 @@ class StartupCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: SizedBox(
@@ -58,7 +59,6 @@ class StartupCard extends StatelessWidget {
                       borderRadius: 0,
                       placeholderIcon: Icons.rocket_launch_outlined,
                     ),
-                    // Category chip overlay
                     Positioned(
                       top: 12,
                       left: 12,
@@ -70,11 +70,14 @@ class StartupCard extends StatelessWidget {
                         ),
                         child: Text(
                           startup.categoryName,
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                    // Status chip
                     Positioned(
                       top: 12,
                       right: 12,
@@ -84,7 +87,6 @@ class StartupCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -137,7 +139,6 @@ class StartupCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  // Funding progress
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -158,10 +159,9 @@ class StartupCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   FundingProgressBar(percent: startup.fundingPercent, showLabel: false),
                   const SizedBox(height: 12),
-                  // Stats row
                   Row(
                     children: [
-                      _statIcon(Icons.favorite_rounded, startup.likeCount, AppColors.danger),
+                      _likeStat(),
                       const SizedBox(width: 16),
                       _statIcon(Icons.bookmark_rounded, startup.favoriteCount, AppColors.warning),
                       const SizedBox(width: 16),
@@ -202,12 +202,38 @@ class StartupCard extends StatelessWidget {
               child: SizedBox(
                 height: 120,
                 width: double.infinity,
-                child: BaseImage(
-                  base64Data: startup.coverImage,
-                  width: 220,
-                  height: 120,
-                  borderRadius: 0,
-                  placeholderIcon: Icons.rocket_launch_outlined,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    BaseImage(
+                      base64Data: startup.coverImage,
+                      width: 220,
+                      height: 120,
+                      borderRadius: 0,
+                      placeholderIcon: Icons.rocket_launch_outlined,
+                    ),
+                    if (onLike != null)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Material(
+                          color: Colors.white.withOpacity(0.92),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: onLike,
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                startup.isLiked ? Icons.favorite : Icons.favorite_border,
+                                size: 18,
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -218,7 +244,11 @@ class StartupCard extends StatelessWidget {
                 children: [
                   Text(
                     startup.name,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -234,6 +264,36 @@ class StartupCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _likeStat() {
+    final icon = startup.isLiked ? Icons.favorite : Icons.favorite_border;
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.danger.withOpacity(0.85)),
+        const SizedBox(width: 4),
+        Text(
+          startup.likeCount.toString(),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+
+    if (onLike == null) return row;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onLike,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: row,
       ),
     );
   }

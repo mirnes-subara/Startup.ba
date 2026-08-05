@@ -65,7 +65,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         filter['categoryId'] = _selectedCategoryId.toString();
       }
       if (_searchQuery.isNotEmpty) {
-        filter['searchText'] = _searchQuery;
+        filter['FTS'] = _searchQuery;
       }
 
       final results = await startupProvider.get(filter: filter);
@@ -113,7 +113,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         filter['categoryId'] = _selectedCategoryId.toString();
       }
       if (_searchQuery.isNotEmpty) {
-        filter['searchText'] = _searchQuery;
+        filter['FTS'] = _searchQuery;
       }
 
       final results = await startupProvider.get(filter: filter);
@@ -237,10 +237,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   itemCount: _recommended.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
+                    final s = _recommended[index];
                     return StartupCard(
-                      startup: _recommended[index],
+                      startup: s,
                       compact: true,
-                      onTap: () => _openStartup(_recommended[index]),
+                      onLike: () => _toggleLike(s, recommended: true),
+                      onTap: () => _openStartup(s),
                     );
                   },
                 ),
@@ -311,6 +313,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: StartupCard(
                         startup: _startups[index],
+                        onLike: () => _toggleLike(_startups[index], recommended: false),
                         onTap: () => _openStartup(_startups[index]),
                       ),
                     );
@@ -349,12 +352,54 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  void _openStartup(Startup startup) {
-    Navigator.push(
+  Future<void> _openStartup(Startup startup) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => StartupDetailsScreen(startupId: startup.id),
       ),
     );
+    if (mounted) _loadData();
+  }
+
+  Future<void> _toggleLike(Startup startup, {required bool recommended}) async {
+    final user = UserProvider.currentUser;
+    if (user == null) return;
+    final provider = context.read<StartupProvider>();
+    final list = recommended ? _recommended : _startups;
+    final index = list.indexWhere((s) => s.id == startup.id);
+    if (index < 0) return;
+
+    try {
+      if (startup.isLiked) {
+        await provider.unlike(startup.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          final updated = startup.copyWith(
+            isLiked: false,
+            likeCount: (startup.likeCount - 1).clamp(0, 1 << 30),
+          );
+          if (recommended) {
+            _recommended[index] = updated;
+          } else {
+            _startups[index] = updated;
+          }
+        });
+      } else {
+        await provider.like(startup.id, user.id);
+        if (!mounted) return;
+        setState(() {
+          final updated = startup.copyWith(
+            isLiked: true,
+            likeCount: startup.likeCount + 1,
+          );
+          if (recommended) {
+            _recommended[index] = updated;
+          } else {
+            _startups[index] = updated;
+          }
+        });
+      }
+    } catch (_) {}
   }
 }

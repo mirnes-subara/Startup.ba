@@ -8,6 +8,7 @@ import 'package:startupba_desktop/providers/city_provider.dart';
 import 'package:startupba_desktop/providers/comment_provider.dart';
 import 'package:startupba_desktop/providers/donation_provider.dart';
 import 'package:startupba_desktop/providers/gender_provider.dart';
+import 'package:startupba_desktop/providers/notification_provider.dart';
 import 'package:startupba_desktop/providers/payment_provider.dart';
 import 'package:startupba_desktop/providers/platform_setting_provider.dart';
 import 'package:startupba_desktop/providers/report_provider.dart';
@@ -41,6 +42,7 @@ class StartupBaAdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SupportTicketProvider()),
         ChangeNotifierProvider(create: (_) => ReportProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => PlatformSettingProvider()),
         ChangeNotifierProvider(create: (_) => GenderProvider()),
         ChangeNotifierProvider(create: (_) => CityProvider()),

@@ -22,6 +22,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   UserAnalytics? _analytics;
   bool _isLoading = true;
+  bool _requesting = false;
 
   @override
   void initState() {
@@ -86,13 +87,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _requestVerification() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Verification request submitted. Our team will review your profile shortly!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+  Future<void> _requestVerification() async {
+    final user = UserProvider.currentUser;
+    if (user == null || _requesting || user.isVerified || user.isVerificationRequested) {
+      return;
+    }
+    setState(() => _requesting = true);
+    try {
+      final updated =
+          await context.read<UserProvider>().requestVerification(user.id);
+      UserProvider.currentUser = updated;
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verification request submitted. Our team will review your profile shortly!',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
   }
 
   @override
@@ -141,16 +168,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(user.email, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
                   const SizedBox(height: 12),
                   if (!user.isVerified)
-                    OutlinedButton.icon(
-                      onPressed: _requestVerification,
-                      icon: const Icon(Icons.verified_outlined, size: 18),
-                      label: const Text('Verify Profile'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.white.withOpacity(0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
-                    ),
+                    user.isVerificationRequested
+                        ? OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.hourglass_top, size: 18),
+                            label: const Text('Pending review'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                              disabledForegroundColor: Colors.white70,
+                              side: BorderSide(color: Colors.white.withOpacity(0.35)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            ),
+                          )
+                        : OutlinedButton.icon(
+                            onPressed: _requesting ? null : _requestVerification,
+                            icon: _requesting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.verified_outlined, size: 18),
+                            label: Text(_requesting ? 'Submitting…' : 'Verify Profile'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white.withOpacity(0.5)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            ),
+                          ),
                 ],
               ),
             ),

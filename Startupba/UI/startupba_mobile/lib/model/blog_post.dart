@@ -17,6 +17,7 @@ class BlogPost {
   final DateTime? updatedAt;
   final int likeCount;
   final int commentCount;
+  final bool isLiked;
 
   BlogPost({
     this.id = 0,
@@ -32,7 +33,31 @@ class BlogPost {
     this.updatedAt,
     this.likeCount = 0,
     this.commentCount = 0,
+    this.isLiked = false,
   });
+
+  BlogPost copyWith({
+    int? likeCount,
+    int? commentCount,
+    bool? isLiked,
+  }) {
+    return BlogPost(
+      id: id,
+      authorId: authorId,
+      authorName: authorName,
+      startupId: startupId,
+      startupName: startupName,
+      title: title,
+      content: content,
+      imageData: imageData,
+      isActive: isActive,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      likeCount: likeCount ?? this.likeCount,
+      commentCount: commentCount ?? this.commentCount,
+      isLiked: isLiked ?? this.isLiked,
+    );
+  }
 
   factory BlogPost.fromJson(Map<String, dynamic> json) =>
       _$BlogPostFromJson(json);

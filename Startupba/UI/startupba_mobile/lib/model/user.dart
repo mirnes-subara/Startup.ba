@@ -13,6 +13,7 @@ class User {
   final String? picture;
   final bool isActive;
   final bool isVerified;
+  final bool isVerificationRequested;
   final String? phoneNumber;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
@@ -31,6 +32,7 @@ class User {
     this.picture,
     this.isActive = true,
     this.isVerified = false,
+    this.isVerificationRequested = false,
     this.phoneNumber,
     required this.createdAt,
     this.lastLoginAt,

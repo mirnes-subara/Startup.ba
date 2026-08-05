@@ -18,6 +18,7 @@ class _NotificationTypes {
   static const int ticketAnswered = 6;
   static const int reportResolved = 7;
   static const int announcement = 8;
+  static const int verificationRequested = 9;
 }
 
 class NotificationsScreen extends StatefulWidget {
@@ -108,6 +109,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           return Icons.flag;
         case 'announcement':
           return Icons.campaign;
+        case 'user':
+          return Icons.verified_user_outlined;
       }
     }
 
@@ -127,6 +130,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.flag;
       case _NotificationTypes.announcement:
         return Icons.campaign;
+      case _NotificationTypes.verificationRequested:
+        return Icons.verified_user_outlined;
       default:
         return Icons.notifications;
     }

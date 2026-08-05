@@ -25,7 +25,7 @@ class _ChatNewScreenState extends State<ChatNewScreen> {
     setState(() => _isLoading = true);
     try {
       final provider = context.read<UserProvider>();
-      final result = await provider.get(filter: {'searchText': query, 'pageSize': '20'});
+      final result = await provider.get(filter: {'FTS': query, 'pageSize': '20'});
       final currentId = UserProvider.currentUser?.id;
       if (mounted) {
         setState(() {

@@ -32,6 +32,10 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
 
   bool get _isEditing => widget.blogPost != null;
 
+  /// Pre-selected from startup Share — lock association, no founder dropdown needed.
+  bool get _isLockedStartupShare =>
+      widget.startupId != null && widget.startupName != null && !_isEditing;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,11 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
     }
     if (widget.startupName != null && !_isEditing) {
       _titleCtrl.text = 'Check out: ${widget.startupName}';
+      if (_isLockedStartupShare) {
+        _contentCtrl.text =
+            'I wanted to share "${widget.startupName}" with the community. '
+            'Take a look and support this startup if it resonates with you!';
+      }
     }
     _loadUserStartups();
   }
@@ -101,6 +110,7 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
   }
 
   Future<void> _save() async {
+    if (_isLoading) return;
     if (_titleCtrl.text.trim().isEmpty || _contentCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title and content are required')));
       return;
@@ -115,6 +125,7 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
         'imageData': _imageBase64,
         'authorId': UserProvider.currentUser?.id,
         'startupId': _selectedStartupId,
+        'isActive': true,
       };
 
       if (_isEditing) {
@@ -194,8 +205,40 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
               maxLines: 2,
             ),
             const Divider(),
-            // Optional Startup Association
-            if (_userStartups.isNotEmpty || widget.startupName != null || widget.blogPost?.startupName != null) ...[
+            // Startup association
+            if (_isLockedStartupShare) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.rocket_launch, size: 18, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Sharing: ${widget.startupName}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.lock_outline, size: 16, color: Colors.grey[500]),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(),
+            ] else if (_userStartups.isNotEmpty ||
+                (widget.blogPost?.startupName != null &&
+                    _userStartups.any((s) => s.id == _selectedStartupId))) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Container(
@@ -207,7 +250,9 @@ class _BlogEditScreenState extends State<BlogEditScreen> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<int?>(
-                      value: _selectedStartupId,
+                      value: _userStartups.any((s) => s.id == _selectedStartupId)
+                          ? _selectedStartupId
+                          : null,
                       isExpanded: true,
                       hint: const Row(
                         children: [

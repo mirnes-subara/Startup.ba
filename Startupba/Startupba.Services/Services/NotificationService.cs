@@ -23,7 +23,8 @@ namespace Startupba.Services.Services
             "New Comment",         // 5
             "Ticket Answered",     // 6
             "Report Resolved",     // 7
-            "Announcement"         // 8
+            "Announcement",        // 8
+            "Verification Requested" // 9
         };
 
         public NotificationService(StartupbaDbContext context)

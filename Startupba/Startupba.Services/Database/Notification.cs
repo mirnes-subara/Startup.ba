@@ -61,5 +61,6 @@ namespace Startupba.Services.Database
         public const int TicketAnswered = 6;
         public const int ReportResolved = 7;
         public const int Announcement = 8;
+        public const int VerificationRequested = 9;
     }
 }

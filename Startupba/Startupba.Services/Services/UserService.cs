@@ -17,9 +17,14 @@ namespace Startupba.Services.Services
 {
     public class UserService : BaseService<UserResponse, UserSearchObject, User>, IUserService
     {
+        private readonly INotificationService _notificationService;
 
-        public UserService(StartupbaDbContext context, IMapper mapper) : base(context, mapper)
+        public UserService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService) : base(context, mapper)
         {
+            _notificationService = notificationService;
         }
 
         public override async Task<PagedResult<UserResponse>> GetAsync(UserSearchObject search)
@@ -250,6 +255,7 @@ namespace Startupba.Services.Services
                 Picture = user.Picture,
                 IsActive = user.IsActive,
                 IsVerified = user.IsVerified,
+                IsVerificationRequested = user.IsVerificationRequested,
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt,
                 PhoneNumber = user.PhoneNumber,
@@ -290,9 +296,81 @@ namespace Startupba.Services.Services
                 return null;
 
             user.IsVerified = true;
+            user.IsVerificationRequested = false;
             await _context.SaveChangesAsync();
 
+            try
+            {
+                await _notificationService.CreateNotificationAsync(
+                    user.Id,
+                    "Profile Verified",
+                    "Your profile has been verified. You now have a verified badge.",
+                    NotificationTypes.Announcement,
+                    user.Id,
+                    "User");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Notification error: {ex.Message}");
+            }
+
             return await GetUserResponseWithRolesAsync(user.Id);
+        }
+
+        public async Task<UserResponse?> RequestVerificationAsync(int id)
+        {
+            var user = await _context.Users
+                .Include(u => u.Gender)
+                .Include(u => u.City)
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+                return null;
+
+            if (user.IsVerified)
+            {
+                throw new InvalidOperationException("Profile is already verified.");
+            }
+
+            // Idempotent: already requested — do not spam admins
+            if (user.IsVerificationRequested)
+            {
+                return MapToResponse(user);
+            }
+
+            user.IsVerificationRequested = true;
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                var adminIds = await _context.UserRoles
+                    .Where(ur => ur.Role.Name == "Administrator")
+                    .Select(ur => ur.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var displayName = $"{user.FirstName} {user.LastName}".Trim();
+                if (string.IsNullOrEmpty(displayName))
+                    displayName = user.Username;
+
+                foreach (var adminId in adminIds)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        adminId,
+                        "Verification Requested",
+                        $"\"{displayName}\" (@{user.Username}) requested profile verification.",
+                        NotificationTypes.VerificationRequested,
+                        user.Id,
+                        "User");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Notification error: {ex.Message}");
+            }
+
+            return MapToResponse(user);
         }
 
         public async Task<UserResponse?> AuthenticateAsync(UserLoginRequest request)

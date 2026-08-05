@@ -56,7 +56,11 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
 
       final startup = await provider.getById(widget.startupId);
       final images = await imageProvider.get(filter: {'startupId': widget.startupId.toString()});
-      final posts = await blogProvider.get(filter: {'startupId': widget.startupId.toString(), 'pageSize': '5'});
+      final posts = await blogProvider.get(filter: {
+        'startupId': widget.startupId.toString(),
+        'pageSize': '5',
+        'isActive': 'true',
+      });
 
       if (mounted) {
         setState(() {
@@ -432,10 +436,17 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                           icon: Icons.edit_note,
                           label: 'Share',
                           color: AppColors.info,
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => BlogEditScreen(startupId: s.id, startupName: s.name),
-                            ));
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BlogEditScreen(
+                                  startupId: s.id,
+                                  startupName: s.name,
+                                ),
+                              ),
+                            );
+                            if (mounted) _loadStartup();
                           },
                         ),
                       ),
@@ -471,10 +482,24 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                     ),
                   ],
                   // Related blog posts
-                  if (_relatedPosts.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    const Text('Blog Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                    const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  const Text('Blog Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  const SizedBox(height: 12),
+                  if (_relatedPosts.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        'No blog posts about this startup yet. Tap Share to write one.',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                    )
+                  else
                     ...List.generate(_relatedPosts.length, (i) {
                       final post = _relatedPosts[i];
                       return Padding(
@@ -484,9 +509,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                             builder: (_) => BlogDetailsScreen(blogPostId: post.id),
                           )),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          tileColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: AppColors.border),
+                            side: const BorderSide(color: AppColors.border),
                           ),
                           leading: Container(
                             width: 40, height: 40,
@@ -502,7 +528,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                         ),
                       );
                     }),
-                  ],
                   const SizedBox(height: 100),
                 ],
               ),
