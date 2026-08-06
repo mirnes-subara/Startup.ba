@@ -5,6 +5,7 @@ import 'package:startupba_mobile/model/user.dart';
 import 'package:startupba_mobile/model/user_analytics.dart';
 import 'package:startupba_mobile/providers/user_analytics_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
+import 'package:startupba_mobile/screens/change_password_screen.dart';
 import 'package:startupba_mobile/screens/edit_profile_screen.dart';
 import 'package:startupba_mobile/screens/support_ticket_screen.dart';
 import 'package:startupba_mobile/screens/announcements_screen.dart';
@@ -251,6 +252,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _linkTile(Icons.person_outline, 'Edit Profile', () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
               setState(() {});
+            }),
+            _linkTile(Icons.lock_outline, 'Change Password', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+              );
             }),
             _linkTile(Icons.support_agent_outlined, 'Support Tickets', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportTicketScreen()))),
             _linkTile(Icons.campaign_outlined, 'Announcements', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()))),

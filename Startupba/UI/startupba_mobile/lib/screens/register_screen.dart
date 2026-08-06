@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/model/city.dart';
 import 'package:startupba_mobile/model/gender.dart';
-import 'package:startupba_mobile/providers/city_provider.dart';
 import 'package:startupba_mobile/providers/gender_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
+import 'package:startupba_mobile/widgets/country_city_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -32,7 +32,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   String? _pictureBase64;
-  List<City> _cities = [];
   List<Gender> _genders = [];
   City? _selectedCity;
   Gender? _selectedGender;
@@ -45,15 +44,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _loadDropdowns() async {
     try {
-      final cityProvider = context.read<CityProvider>();
-      final genderProvider = context.read<GenderProvider>();
-      final cities = await cityProvider.get();
-      final genders = await genderProvider.get();
+      final genders = await context.read<GenderProvider>().get();
       if (mounted) {
-        setState(() {
-          _cities = cities.items;
-          _genders = genders.items;
-        });
+        setState(() => _genders = genders.items);
       }
     } catch (_) {}
   }
@@ -99,7 +92,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCity == null || _selectedGender == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select city and gender')),
+        const SnackBar(
+          content: Text('Please select country, city and gender'),
+        ),
       );
       return;
     }
@@ -299,28 +294,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             keyboardType: TextInputType.phone,
                           ),
                           const SizedBox(height: 16),
-                          // City dropdown
-                          DropdownButtonFormField<City>(
-                            value: _selectedCity,
-                            decoration: InputDecoration(
-                              labelText: 'City',
-                              prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                            ),
-                            items: _cities.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                            onChanged: (v) => setState(() => _selectedCity = v),
-                            validator: (v) => v == null ? 'Required' : null,
+                          CountryCityPicker(
+                            onChanged: (city) => _selectedCity = city,
                           ),
                           const SizedBox(height: 16),
                           // Gender dropdown
                           DropdownButtonFormField<Gender>(
-                            value: _selectedGender,
+                            key: ValueKey('gender-${_selectedGender?.id ?? 'none'}'),
+                            initialValue: _selectedGender,
                             decoration: InputDecoration(
                               labelText: 'Gender',
                               prefixIcon: const Icon(Icons.wc_outlined, color: AppColors.primary),

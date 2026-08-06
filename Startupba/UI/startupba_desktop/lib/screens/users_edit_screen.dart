@@ -129,18 +129,14 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
       'cityId': values['cityId'],
       'isActive': values['isActive'] ?? true,
     };
-    final password = values['password'] as String?;
-    if (password != null && password.isNotEmpty) {
-      map['password'] = password;
-    }
     if (_pictureBase64 != null && _pictureBase64!.isNotEmpty) {
       map['picture'] = _pictureBase64;
     }
     if (!_isEdit) {
       map['roleIds'] = [2];
-      if (password == null || password.isEmpty) {
-        map['password'] = 'test';
-      }
+      final password = values['password'] as String?;
+      map['password'] =
+          (password != null && password.isNotEmpty) ? password : 'test';
     }
     return map;
   }
@@ -246,21 +242,19 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       validator: FormBuilderValidators.required(),
                                     ),
                                   ),
-                                  SizedBox(
-                                    width: 220,
-                                    child: FormBuilderTextField(
-                                      name: 'password',
-                                      obscureText: true,
-                                      decoration: InputDecoration(
-                                        labelText: _isEdit
-                                            ? 'Password (optional)'
-                                            : 'Password',
+                                  if (!_isEdit)
+                                    SizedBox(
+                                      width: 220,
+                                      child: FormBuilderTextField(
+                                        name: 'password',
+                                        obscureText: true,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Password',
+                                        ),
+                                        validator:
+                                            FormBuilderValidators.required(),
                                       ),
-                                      validator: _isEdit
-                                          ? null
-                                          : FormBuilderValidators.required(),
                                     ),
-                                  ),
                                   SizedBox(
                                     width: 220,
                                     child: FormBuilderTextField(

@@ -54,4 +54,28 @@ class UserProvider extends BaseProvider<User> {
     }
     throw Exception("Failed to request verification");
   }
+
+  Future<void> changePassword({
+    required int userId,
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    var url = "${BaseProvider.baseUrl}$endpoint/$userId/change-password";
+    var uri = Uri.parse(url);
+    var response = await http.put(
+      uri,
+      headers: createHeaders(),
+      body: jsonEncode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'newPasswordConfirmation': newPasswordConfirmation,
+      }),
+    );
+    if (response.statusCode == 204 || isValidResponse(response)) {
+      AuthProvider.password = newPassword;
+      return;
+    }
+    throw Exception("Failed to change password");
+  }
 }

@@ -9,6 +9,7 @@ import 'package:startupba_mobile/providers/startup_provider.dart';
 import 'package:startupba_mobile/providers/startup_image_provider.dart';
 import 'package:startupba_mobile/providers/category_provider.dart';
 import 'package:startupba_mobile/providers/city_provider.dart';
+import 'package:startupba_mobile/providers/country_provider.dart';
 import 'package:startupba_mobile/providers/gender_provider.dart';
 import 'package:startupba_mobile/providers/startup_status_provider.dart';
 import 'package:startupba_mobile/providers/donation_provider.dart';
@@ -55,6 +56,9 @@ void main() async {
         ),
         ChangeNotifierProvider<CityProvider>(
           create: (_) => CityProvider(),
+        ),
+        ChangeNotifierProvider<CountryProvider>(
+          create: (_) => CountryProvider(),
         ),
         ChangeNotifierProvider<GenderProvider>(
           create: (_) => GenderProvider(),

@@ -10,10 +10,10 @@ import 'package:startupba_mobile/model/startup_image.dart';
 import 'package:startupba_mobile/providers/startup_provider.dart';
 import 'package:startupba_mobile/providers/startup_image_provider.dart';
 import 'package:startupba_mobile/providers/category_provider.dart';
-import 'package:startupba_mobile/providers/city_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
+import 'package:startupba_mobile/widgets/country_city_picker.dart';
 
 class StartupCreateScreen extends StatefulWidget {
   final Startup? startup;
@@ -36,7 +36,6 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
   Category? _selectedCategory;
   City? _selectedCity;
   List<Category> _categories = [];
-  List<City> _cities = [];
   String? _coverImage;
   String? _logoImage;
   List<String> _additionalImages = [];
@@ -67,26 +66,20 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
   Future<void> _loadDropdowns() async {
     try {
       final cats = await context.read<CategoryProvider>().get();
-      final cities = await context.read<CityProvider>().get();
       if (!mounted) return;
 
       Category? selectedCat;
-      City? selectedCity;
       if (_isEditing) {
         final s = widget.startup!;
         for (final c in cats.items) {
           if (c.id == s.categoryId) selectedCat = c;
         }
-        for (final c in cities.items) {
-          if (c.id == s.cityId) selectedCity = c;
-        }
+        _selectedCity = City(id: s.cityId, name: s.cityName);
       }
 
       setState(() {
         _categories = cats.items;
-        _cities = cities.items;
         _selectedCategory = selectedCat;
-        _selectedCity = selectedCity;
       });
 
       if (_isEditing) {
@@ -634,18 +627,9 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
                 validator: (v) => v == null ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<City>(
-                value: _selectedCity,
-                decoration: InputDecoration(
-                  labelText: 'City',
-                  prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                items: _cities.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                onChanged: (v) => setState(() => _selectedCity = v),
-                validator: (v) => v == null ? 'Required' : null,
+              CountryCityPicker(
+                initialCityId: widget.startup?.cityId,
+                onChanged: (city) => _selectedCity = city,
               ),
               const SizedBox(height: 16),
               _buildField(

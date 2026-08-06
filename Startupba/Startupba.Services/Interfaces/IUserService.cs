@@ -13,6 +13,7 @@ namespace Startupba.Services.Interfaces
         Task<UserResponse?> AuthenticateAsync(UserLoginRequest request);
         Task<UserResponse> CreateAsync(UserUpsertRequest request);
         Task<UserResponse?> UpdateAsync(int id, UserUpsertRequest request);
+        Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
         Task<bool> DeleteAsync(int id);
         Task<UserResponse?> VerifyAsync(int id);
         Task<UserResponse?> RequestVerificationAsync(int id);

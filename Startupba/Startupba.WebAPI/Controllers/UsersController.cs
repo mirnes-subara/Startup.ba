@@ -59,6 +59,22 @@ namespace Startupba.WebAPI.Controllers
             return updatedUser;
         }
 
+        /// <summary>
+        /// Authenticated user changes their own password. Admins cannot change other users' passwords.
+        /// </summary>
+        [HttpPut("{id}/change-password")]
+        public async Task<ActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var callerId) || callerId != id)
+            {
+                return Forbid();
+            }
+
+            await _userService.ChangePasswordAsync(id, request);
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {

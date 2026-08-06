@@ -5,6 +5,7 @@ using System.Linq;
 using System;
 
 using MapsterMapper;
+using Startupba.Model;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
@@ -201,13 +202,6 @@ namespace Startupba.Services.Services
             user.IsActive = request.IsActive;
             user.Picture = request.Picture;
 
-            // Update password if provided
-            if (!string.IsNullOrEmpty(request.Password))
-            {
-                user.PasswordSalt = PasswordGenerator.GenerateSalt();
-                user.PasswordHash = PasswordGenerator.GenerateHash(request.Password, user.PasswordSalt);
-            }
-
             // Update roles if provided and not empty
             if (request.RoleIds != null && request.RoleIds.Any())
             {
@@ -230,6 +224,29 @@ namespace Startupba.Services.Services
 
             await _context.SaveChangesAsync();
             return await GetUserResponseWithRolesAsync(user.Id);
+        }
+
+        public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new UserException("User not found.");
+            }
+
+            if (request.NewPassword != request.NewPasswordConfirmation)
+            {
+                throw new UserException("New password and confirmation do not match.");
+            }
+
+            if (!PasswordGenerator.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            {
+                throw new UserException("Current password is incorrect.");
+            }
+
+            user.PasswordSalt = PasswordGenerator.GenerateSalt();
+            user.PasswordHash = PasswordGenerator.GenerateHash(request.NewPassword, user.PasswordSalt);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<bool> DeleteAsync(int id)
