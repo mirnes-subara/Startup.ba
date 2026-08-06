@@ -24,5 +24,23 @@ namespace Startupba.WebAPI.Controllers
         {
             return await base.GetById(id);
         }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<CityResponse> Create([FromBody] CityUpsertRequest request)
+        {
+            return await base.Create(request);
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<CityResponse?> Update(int id, [FromBody] CityUpsertRequest request)
+        {
+            return await base.Update(id, request);
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<bool> Delete(int id)
+        {
+            return await base.Delete(id);
+        }
     }
 }

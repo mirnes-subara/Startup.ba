@@ -52,6 +52,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Printing.layoutPdf(onLayout: (_) async => bytes);
   }
 
+  Future<void> _downloadCategoryPdf() async {
+    if (_data == null) return;
+    final bytes = await buildCategoryAnalyticsPdf(_data!);
+    await Printing.layoutPdf(onLayout: (_) async => bytes);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
@@ -66,10 +72,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Align(
                         alignment: Alignment.centerRight,
-                        child: OutlinedButton.icon(
-                          onPressed: _downloadPdf,
-                          icon: const Icon(Icons.picture_as_pdf_outlined),
-                          label: const Text('Download PDF report'),
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _downloadPdf,
+                              icon: const Icon(Icons.picture_as_pdf_outlined),
+                              label: const Text('Download PDF report'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _downloadCategoryPdf,
+                              icon: const Icon(Icons.picture_as_pdf_outlined),
+                              label: const Text('Download category report'),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),

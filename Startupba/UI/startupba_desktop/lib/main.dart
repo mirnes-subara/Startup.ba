@@ -6,6 +6,7 @@ import 'package:startupba_desktop/providers/blog_post_provider.dart';
 import 'package:startupba_desktop/providers/category_provider.dart';
 import 'package:startupba_desktop/providers/city_provider.dart';
 import 'package:startupba_desktop/providers/comment_provider.dart';
+import 'package:startupba_desktop/providers/country_provider.dart';
 import 'package:startupba_desktop/providers/donation_provider.dart';
 import 'package:startupba_desktop/providers/gender_provider.dart';
 import 'package:startupba_desktop/providers/notification_provider.dart';
@@ -45,6 +46,7 @@ class StartupBaAdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => PlatformSettingProvider()),
         ChangeNotifierProvider(create: (_) => GenderProvider()),
+        ChangeNotifierProvider(create: (_) => CountryProvider()),
         ChangeNotifierProvider(create: (_) => CityProvider()),
       ],
       child: MaterialApp(

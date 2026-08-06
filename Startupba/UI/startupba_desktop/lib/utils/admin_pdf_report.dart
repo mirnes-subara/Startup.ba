@@ -51,6 +51,48 @@ Future<Uint8List> buildAdminAnalyticsPdf(Analytics analytics) async {
   return doc.save();
 }
 
+Future<Uint8List> buildCategoryAnalyticsPdf(Analytics analytics) async {
+  final doc = pw.Document();
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) => [
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            'Startup.ba — Category Report',
+            style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
+        pw.SizedBox(height: 12),
+        pw.Text('Generated: ${AppDateFormat.dateTime(DateTime.now())}'),
+        pw.SizedBox(height: 24),
+        pw.Text(
+          'Startups by category',
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 8),
+        ...analytics.startupsByCategory.map(
+          (c) => _row(c.categoryName, '${c.count} (${c.approvedCount} approved)'),
+        ),
+        pw.SizedBox(height: 20),
+        pw.Text(
+          'Donations by category',
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 8),
+        ...analytics.donationsByCategory.map(
+          (c) => _row(
+            c.categoryName,
+            '${AppDateFormat.money(c.amount)} (${c.donationCount} donations)',
+          ),
+        ),
+      ],
+    ),
+  );
+  return doc.save();
+}
+
 pw.Widget _row(String label, String value) {
   return pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 6),

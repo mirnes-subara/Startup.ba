@@ -24,5 +24,23 @@ namespace Startupba.WebAPI.Controllers
         {
             return await base.GetById(id);
         }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<CountryResponse> Create([FromBody] CountryUpsertRequest request)
+        {
+            return await base.Create(request);
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<CountryResponse?> Update(int id, [FromBody] CountryUpsertRequest request)
+        {
+            return await base.Update(id, request);
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<bool> Delete(int id)
+        {
+            return await base.Delete(id);
+        }
     }
 }

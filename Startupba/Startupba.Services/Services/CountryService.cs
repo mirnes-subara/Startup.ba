@@ -52,5 +52,13 @@ namespace Startupba.Services.Services
                 throw new InvalidOperationException("A country with this name already exists.");
             }
         }
+
+        protected override async Task BeforeDelete(Country entity)
+        {
+            if (await _context.Cities.AnyAsync(c => c.CountryId == entity.Id))
+            {
+                throw new InvalidOperationException("Cannot delete a country that has cities. Deactivate it instead.");
+            }
+        }
     }
 }

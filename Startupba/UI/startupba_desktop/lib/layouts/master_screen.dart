@@ -6,6 +6,8 @@ import 'package:startupba_desktop/providers/user_provider.dart';
 import 'package:startupba_desktop/screens/announcement_list_screen.dart';
 import 'package:startupba_desktop/screens/blog_list_screen.dart';
 import 'package:startupba_desktop/screens/category_list_screen.dart';
+import 'package:startupba_desktop/screens/city_list_screen.dart';
+import 'package:startupba_desktop/screens/country_list_screen.dart';
 import 'package:startupba_desktop/screens/dashboard_screen.dart';
 import 'package:startupba_desktop/screens/donation_list_screen.dart';
 import 'package:startupba_desktop/screens/login_screen.dart';
@@ -147,6 +149,18 @@ class MasterScreen extends StatelessWidget {
                         label: 'Categories',
                         selected: routeName == 'CategoryListScreen',
                         onTap: () => _navigate(context, const CategoryListScreen()),
+                      ),
+                      _NavItem(
+                        icon: Icons.public_outlined,
+                        label: 'Countries',
+                        selected: routeName == 'CountryListScreen',
+                        onTap: () => _navigate(context, const CountryListScreen()),
+                      ),
+                      _NavItem(
+                        icon: Icons.location_city_outlined,
+                        label: 'Cities',
+                        selected: routeName == 'CityListScreen',
+                        onTap: () => _navigate(context, const CityListScreen()),
                       ),
                       _NavItem(
                         icon: Icons.settings_outlined,

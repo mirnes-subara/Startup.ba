@@ -137,5 +137,14 @@ namespace Startupba.Services.Services
                 throw new InvalidOperationException("A city with this name already exists.");
             }
         }
+
+        protected override async Task BeforeDelete(City entity)
+        {
+            if (await _context.Users.AnyAsync(u => u.CityId == entity.Id) ||
+                await _context.Startups.AnyAsync(s => s.CityId == entity.Id))
+            {
+                throw new InvalidOperationException("Cannot delete a city that is in use. Deactivate it instead.");
+            }
+        }
     }
 } 

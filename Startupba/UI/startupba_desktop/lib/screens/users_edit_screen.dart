@@ -4,9 +4,11 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_desktop/layouts/master_screen.dart';
 import 'package:startupba_desktop/model/city.dart';
+import 'package:startupba_desktop/model/country.dart';
 import 'package:startupba_desktop/model/gender.dart';
 import 'package:startupba_desktop/model/user.dart';
 import 'package:startupba_desktop/providers/city_provider.dart';
+import 'package:startupba_desktop/providers/country_provider.dart';
 import 'package:startupba_desktop/providers/gender_provider.dart';
 import 'package:startupba_desktop/providers/user_provider.dart';
 import 'package:startupba_desktop/widgets/app_dialogs.dart';
@@ -24,7 +26,9 @@ class UsersEditScreen extends StatefulWidget {
 class _UsersEditScreenState extends State<UsersEditScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   List<Gender> _genders = [];
+  List<Country> _countries = [];
   List<City> _cities = [];
+  int? _selectedCountryId;
   String? _pictureBase64;
   bool _saving = false;
   bool _loading = true;
@@ -40,21 +44,76 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
 
   Future<void> _loadLookups() async {
     try {
-      final g = await context.read<GenderProvider>().get(
+      final genderProvider = context.read<GenderProvider>();
+      final countryProvider = context.read<CountryProvider>();
+      final cityProvider = context.read<CityProvider>();
+
+      final genderResult = await genderProvider.get(
         filter: {'RetrieveAll': true},
       );
-      final c = await context.read<CityProvider>().get(
-        filter: {'RetrieveAll': true},
+      final countryResult = await countryProvider.get(
+        filter: {'RetrieveAll': true, 'IsActive': true},
       );
+
+      int? countryId;
+      if (_isEdit && widget.user!.cityId != 0) {
+        final city = await cityProvider.getById(widget.user!.cityId);
+        countryId = city?.countryId;
+      }
+
+      List<City> cities = [];
+      if (countryId != null) {
+        final cityResult = await cityProvider.get(
+          filter: {
+            'RetrieveAll': true,
+            'CountryId': countryId,
+            'IsActive': true,
+          },
+        );
+        cities = cityResult.items ?? [];
+      }
+
       if (mounted) {
         setState(() {
-          _genders = g.items ?? [];
-          _cities = c.items ?? [];
+          _genders = genderResult.items ?? [];
+          _countries = countryResult.items ?? [];
+          _cities = cities;
+          _selectedCountryId = countryId;
           _loading = false;
         });
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _onCountryChanged(int? countryId) async {
+    setState(() {
+      _selectedCountryId = countryId;
+      _cities = [];
+    });
+    _formKey.currentState?.fields['cityId']?.didChange(null);
+
+    if (countryId == null) return;
+
+    try {
+      final cityResult = await context.read<CityProvider>().get(
+        filter: {
+          'RetrieveAll': true,
+          'CountryId': countryId,
+          'IsActive': true,
+        },
+      );
+      if (mounted) {
+        setState(() => _cities = cityResult.items ?? []);
+      }
+    } catch (e) {
+      if (mounted) {
+        await ErrorDialog.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     }
   }
 
@@ -238,15 +297,49 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                   SizedBox(
                                     width: 220,
                                     child: FormBuilderDropdown<int>(
+                                      name: 'countryId',
+                                      initialValue: _selectedCountryId,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Country',
+                                      ),
+                                      validator: FormBuilderValidators.required(),
+                                      items: _countries
+                                          .map(
+                                            (c) => DropdownMenuItem(
+                                              value: c.id,
+                                              child: Text(c.name),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: _onCountryChanged,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 220,
+                                    child: FormBuilderDropdown<int>(
+                                      key: ValueKey(
+                                        'city-$_selectedCountryId-${_cities.length}',
+                                      ),
                                       name: 'cityId',
-                                      initialValue: u?.cityId == 0
-                                          ? (_cities.isNotEmpty
-                                              ? _cities.first.id
-                                              : null)
-                                          : u?.cityId,
+                                      initialValue: () {
+                                        if (_selectedCountryId == null) {
+                                          return null;
+                                        }
+                                        if (u?.cityId != null &&
+                                            u!.cityId != 0 &&
+                                            _cities.any(
+                                              (c) => c.id == u.cityId,
+                                            )) {
+                                          return u.cityId;
+                                        }
+                                        return _cities.isNotEmpty
+                                            ? _cities.first.id
+                                            : null;
+                                      }(),
                                       decoration: const InputDecoration(
                                         labelText: 'City',
                                       ),
+                                      enabled: _selectedCountryId != null,
                                       validator: FormBuilderValidators.required(),
                                       items: _cities
                                           .map(
@@ -275,9 +368,13 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
-                              : Text(_isEdit ? 'Save changes' : 'Create user'),
+                              : Text(
+                                  _isEdit ? 'Save changes' : 'Create user',
+                                ),
                         ),
                       ],
                     ),
