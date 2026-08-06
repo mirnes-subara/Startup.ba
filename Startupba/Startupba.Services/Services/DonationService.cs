@@ -7,6 +7,7 @@ using Startupba.Services.Interfaces;
 using Startupba.Subscriber.Models;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,10 +17,14 @@ namespace Startupba.Services.Services
     public class DonationService : BaseCRUDService<DonationResponse, DonationSearchObject, Donation, DonationUpsertRequest, DonationUpsertRequest>, IDonationService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<DonationService> _logger;
+        private readonly IRabbitMqPublisher _rabbitMqPublisher;
 
-        public DonationService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public DonationService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<DonationService> logger, IRabbitMqPublisher rabbitMqPublisher) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
+            _rabbitMqPublisher = rabbitMqPublisher;
         }
 
         private IQueryable<Donation> BaseQuery => _context.Donations
@@ -162,7 +167,7 @@ namespace Startupba.Services.Services
 
             // Donations start as Pending and are completed once the payment is confirmed
             entity.Status = "Pending";
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
 
             return entity;
         }
@@ -194,12 +199,12 @@ namespace Startupba.Services.Services
             }
 
             entity.Status = "Completed";
-            entity.CompletedAt = DateTime.Now;
+            entity.CompletedAt = DateTime.UtcNow;
 
             // Update the startup's raised amount
             var startup = entity.Startup;
             startup.AmountRaised += entity.Amount;
-            startup.UpdatedAt = DateTime.Now;
+            startup.UpdatedAt = DateTime.UtcNow;
 
             // Auto-complete the startup when the funding target is reached
             bool targetReached = startup.AmountRaised >= startup.TargetAmount
@@ -207,7 +212,7 @@ namespace Startupba.Services.Services
             if (targetReached)
             {
                 startup.StatusId = StartupStatuses.Completed;
-                startup.CompletedAt = DateTime.Now;
+                startup.CompletedAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();
@@ -240,13 +245,13 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send donation notification");
             }
 
             // Email notification to the founder via RabbitMQ
             if (startup.Founder != null)
             {
-                await RabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
+                await _rabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
                 {
                     NotificationType = "DonationReceived",
                     RecipientEmail = startup.Founder.Email,
@@ -295,7 +300,7 @@ namespace Startupba.Services.Services
 
             var startup = entity.Startup;
             startup.AmountRaised = Math.Max(0, startup.AmountRaised - entity.Amount);
-            startup.UpdatedAt = DateTime.Now;
+            startup.UpdatedAt = DateTime.UtcNow;
             // Intentionally keep startup StatusId as-is (including Completed).
 
             await _context.SaveChangesAsync();

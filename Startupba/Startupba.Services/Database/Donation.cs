@@ -36,7 +36,7 @@ namespace Startupba.Services.Database
         [MaxLength(50)]
         public string Status { get; set; } = "Pending";
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? CompletedAt { get; set; }
 

@@ -9,6 +9,7 @@ using Startupba.Subscriber.Models;
 using MapsterMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,15 +22,21 @@ namespace Startupba.Services.Services
     {
         private readonly INotificationService _notificationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<StartupService> _logger;
+        private readonly IRabbitMqPublisher _rabbitMqPublisher;
 
         public StartupService(
             StartupbaDbContext context,
             IMapper mapper,
             INotificationService notificationService,
-            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<StartupService> logger,
+            IRabbitMqPublisher rabbitMqPublisher) : base(context, mapper)
         {
             _notificationService = notificationService;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+            _rabbitMqPublisher = rabbitMqPublisher;
         }
 
         #region Query
@@ -234,7 +241,7 @@ namespace Startupba.Services.Services
             // Every new startup awaits admin approval
             entity.StatusId = StartupStatuses.Pending;
             entity.AmountRaised = 0;
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
 
             // Snapshot the current platform fee so the founder knows the terms up front
             var feeSetting = _context.PlatformSettings
@@ -282,7 +289,7 @@ namespace Startupba.Services.Services
         protected override void MapUpdateToEntity(Startup entity, StartupUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);
-            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.UtcNow;
 
             // Resubmit rejected startups for admin review after founder edits
             if (entity.StatusId == StartupStatuses.Rejected)
@@ -322,7 +329,7 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             decimal? fee = null;
             var feeSetting = await _context.PlatformSettings
                 .FirstOrDefaultAsync(ps => ps.Key == PlatformSettingKeys.PlatformFeePercent);
@@ -374,7 +381,7 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var rows = await _context.Startups
                 .Where(s => s.Id == id && s.StatusId == StartupStatuses.Pending)
                 .ExecuteUpdateAsync(s => s
@@ -403,7 +410,7 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var rows = await _context.Startups
                 .Where(s => s.Id == id && s.StatusId == StartupStatuses.Approved)
                 .ExecuteUpdateAsync(s => s
@@ -429,7 +436,7 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var rows = await _context.Startups
                 .Where(s => s.Id == id && s.StatusId == StartupStatuses.Paused)
                 .ExecuteUpdateAsync(s => s
@@ -473,7 +480,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to notify admins about startup submission");
             }
         }
 
@@ -486,7 +493,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to notify founder about startup status change");
             }
         }
 
@@ -498,7 +505,7 @@ namespace Startupba.Services.Services
 
             var city = entity.City ?? await _context.Cities.Include(c => c.Country).FirstOrDefaultAsync(c => c.Id == entity.CityId);
 
-            await RabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
+            await _rabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
             {
                 NotificationType = notificationType,
                 RecipientEmail = founder.Email,
@@ -532,7 +539,7 @@ namespace Startupba.Services.Services
             {
                 StartupId = startupId,
                 UserId = userId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
             return true;
@@ -563,7 +570,7 @@ namespace Startupba.Services.Services
             {
                 StartupId = startupId,
                 UserId = userId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
             return true;

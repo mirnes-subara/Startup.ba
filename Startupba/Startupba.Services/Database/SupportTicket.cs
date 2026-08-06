@@ -33,7 +33,7 @@ namespace Startupba.Services.Database
         [MaxLength(2000)]
         public string? AdminResponse { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? AnsweredAt { get; set; }
 

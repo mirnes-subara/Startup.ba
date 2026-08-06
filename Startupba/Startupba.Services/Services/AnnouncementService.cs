@@ -5,6 +5,7 @@ using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,10 +15,12 @@ namespace Startupba.Services.Services
     public class AnnouncementService : BaseCRUDService<AnnouncementResponse, AnnouncementSearchObject, Announcement, AnnouncementUpsertRequest, AnnouncementUpsertRequest>, IAnnouncementService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<AnnouncementService> _logger;
 
-        public AnnouncementService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public AnnouncementService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<AnnouncementService> logger) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         private IQueryable<Announcement> BaseQuery => _context.Announcements
@@ -133,7 +136,7 @@ namespace Startupba.Services.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Notification error: {ex.Message}");
+                    _logger.LogError(ex, "Failed to send announcement notifications");
                 }
             }
 
@@ -143,7 +146,7 @@ namespace Startupba.Services.Services
         protected override void MapUpdateToEntity(Announcement entity, AnnouncementUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);
-            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.UtcNow;
         }
     }
 }

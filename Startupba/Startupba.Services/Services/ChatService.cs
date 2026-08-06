@@ -53,7 +53,7 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(Chat entity, ChatUpsertRequest request)
         {
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
             entity.IsRead = false;
             await Task.CompletedTask;
         }
@@ -66,7 +66,7 @@ namespace Startupba.Services.Services
                 return false;
 
             chat.IsRead = true;
-            chat.ReadAt = DateTime.Now;
+            chat.ReadAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -90,7 +90,7 @@ namespace Startupba.Services.Services
             foreach (var message in unreadMessages)
             {
                 message.IsRead = true;
-                message.ReadAt = DateTime.Now;
+                message.ReadAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();

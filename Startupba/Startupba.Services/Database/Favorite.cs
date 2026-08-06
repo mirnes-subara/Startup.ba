@@ -18,7 +18,7 @@ namespace Startupba.Services.Database
         [Required]
         public int UserId { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         [ForeignKey("StartupId")]

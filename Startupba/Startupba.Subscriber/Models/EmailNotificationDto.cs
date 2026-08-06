@@ -33,6 +33,6 @@ namespace Startupba.Subscriber.Models
         public string? TicketSubject { get; set; }
         public string? AdminResponse { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

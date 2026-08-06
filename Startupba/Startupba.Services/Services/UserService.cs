@@ -12,6 +12,7 @@ using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using Startupba.Model.Requests;
 using Startupba.Services.Helpers;
+using Microsoft.Extensions.Logging;
 
 
 namespace Startupba.Services.Services
@@ -19,13 +20,16 @@ namespace Startupba.Services.Services
     public class UserService : BaseService<UserResponse, UserSearchObject, User>, IUserService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<UserService> _logger;
 
         public UserService(
             StartupbaDbContext context,
             IMapper mapper,
-            INotificationService notificationService) : base(context, mapper)
+            INotificationService notificationService,
+            ILogger<UserService> logger) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public override async Task<PagedResult<UserResponse>> GetAsync(UserSearchObject search)
@@ -328,7 +332,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send notification");
             }
 
             return await GetUserResponseWithRolesAsync(user.Id);
@@ -384,7 +388,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send notification");
             }
 
             return MapToResponse(user);

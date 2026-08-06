@@ -104,7 +104,7 @@ namespace Startupba.Services.Services
         {
             var entity = new StartupImage();
             MapInsertToEntity(entity, request);
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
 
             _context.StartupImages.Add(entity);
 

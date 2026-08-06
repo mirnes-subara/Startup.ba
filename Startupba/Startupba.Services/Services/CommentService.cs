@@ -5,6 +5,7 @@ using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,10 +15,12 @@ namespace Startupba.Services.Services
     public class CommentService : BaseCRUDService<CommentResponse, CommentSearchObject, Comment, CommentUpsertRequest, CommentUpsertRequest>, ICommentService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<CommentService> _logger;
 
-        public CommentService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public CommentService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<CommentService> logger) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         private IQueryable<Comment> BaseQuery => _context.Comments
@@ -146,7 +149,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send comment notification");
             }
 
             return result;

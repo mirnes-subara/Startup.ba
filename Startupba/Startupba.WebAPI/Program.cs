@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using Startupba.WebAPI.Filters;
 using Startupba.Services.Services;
 using Startupba.Services.Interfaces;
+using Startupba.Services.Helpers;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
@@ -48,27 +49,28 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddTransient<IUserService, UserService>();
-builder.Services.AddTransient<IRoleService, RoleService>();
-builder.Services.AddTransient<IGenderService, GenderService>();
-builder.Services.AddTransient<ICountryService, CountryService>();
-builder.Services.AddTransient<ICityService, CityService>();
-builder.Services.AddTransient<ICategoryService, CategoryService>();
-builder.Services.AddTransient<IStartupStatusService, StartupStatusService>();
-builder.Services.AddTransient<IStartupService, StartupService>();
-builder.Services.AddTransient<IStartupImageService, StartupImageService>();
-builder.Services.AddTransient<IDonationService, DonationService>();
-builder.Services.AddTransient<IBlogPostService, BlogPostService>();
-builder.Services.AddTransient<ICommentService, CommentService>();
-builder.Services.AddTransient<IChatService, ChatService>();
-builder.Services.AddTransient<ISupportTicketService, SupportTicketService>();
-builder.Services.AddTransient<IReportService, ReportService>();
-builder.Services.AddTransient<IAnnouncementService, AnnouncementService>();
-builder.Services.AddTransient<IPlatformSettingService, PlatformSettingService>();
-builder.Services.AddTransient<IAnalyticsService, AnalyticsService>();
-builder.Services.AddTransient<IUserAnalyticsService, UserAnalyticsService>();
-builder.Services.AddTransient<IPaymentService, PaymentService>();
-builder.Services.AddTransient<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IGenderService, GenderService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IStartupStatusService, StartupStatusService>();
+builder.Services.AddScoped<IStartupService, StartupService>();
+builder.Services.AddScoped<IStartupImageService, StartupImageService>();
+builder.Services.AddScoped<IDonationService, DonationService>();
+builder.Services.AddScoped<IBlogPostService, BlogPostService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddScoped<IPlatformSettingService, PlatformSettingService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IUserAnalyticsService, UserAnalyticsService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 
 
 // Configure database

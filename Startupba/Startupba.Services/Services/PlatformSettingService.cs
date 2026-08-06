@@ -63,7 +63,7 @@ namespace Startupba.Services.Services
         protected override void MapUpdateToEntity(PlatformSetting entity, PlatformSettingUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);
-            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.UtcNow;
         }
     }
 }

@@ -46,7 +46,7 @@ namespace Startupba.Services.Database
         [MaxLength(1000)]
         public string? AdminNote { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? ResolvedAt { get; set; }
 

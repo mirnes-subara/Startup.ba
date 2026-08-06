@@ -45,7 +45,7 @@ namespace Startupba.Services.Services
                 ReferenceId = referenceId,
                 ReferenceType = referenceType,
                 IsRead = false,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Notifications.Add(entity);

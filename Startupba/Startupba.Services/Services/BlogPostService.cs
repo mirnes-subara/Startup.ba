@@ -274,7 +274,7 @@ namespace Startupba.Services.Services
         protected override void MapUpdateToEntity(BlogPost entity, BlogPostUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);
-            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedAt = DateTime.UtcNow;
         }
 
         public async Task<bool> LikeAsync(int blogPostId, int userId)
@@ -298,7 +298,7 @@ namespace Startupba.Services.Services
             {
                 BlogPostId = blogPostId,
                 UserId = userId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();
             return true;

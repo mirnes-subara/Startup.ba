@@ -7,6 +7,7 @@ using Startupba.Services.Interfaces;
 using Startupba.Subscriber.Models;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,12 +17,16 @@ namespace Startupba.Services.Services
     public class SupportTicketService : BaseCRUDService<SupportTicketResponse, SupportTicketSearchObject, SupportTicket, SupportTicketUpsertRequest, SupportTicketUpsertRequest>, ISupportTicketService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<SupportTicketService> _logger;
+        private readonly IRabbitMqPublisher _rabbitMqPublisher;
 
         private static readonly string[] StatusNames = { "Open", "Answered", "Closed" };
 
-        public SupportTicketService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public SupportTicketService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<SupportTicketService> logger, IRabbitMqPublisher rabbitMqPublisher) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
+            _rabbitMqPublisher = rabbitMqPublisher;
         }
 
         private IQueryable<SupportTicket> BaseQuery => _context.SupportTickets
@@ -118,7 +123,7 @@ namespace Startupba.Services.Services
         {
             base.MapInsertToEntity(entity, request);
             entity.Status = 0; // Open
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
             return entity;
         }
 
@@ -135,7 +140,7 @@ namespace Startupba.Services.Services
 
             entity.AdminResponse = request.AdminResponse;
             entity.Status = 1; // Answered
-            entity.AnsweredAt = DateTime.Now;
+            entity.AnsweredAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
@@ -152,13 +157,13 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send support ticket notification");
             }
 
             // Email notification via RabbitMQ
             if (entity.User != null)
             {
-                await RabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
+                await _rabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
                 {
                     NotificationType = "TicketAnswered",
                     RecipientEmail = entity.User.Email,
@@ -183,7 +188,7 @@ namespace Startupba.Services.Services
             }
 
             entity.Status = 2; // Closed
-            entity.ClosedAt = DateTime.Now;
+            entity.ClosedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

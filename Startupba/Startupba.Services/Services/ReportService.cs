@@ -5,6 +5,7 @@ using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,13 +15,15 @@ namespace Startupba.Services.Services
     public class ReportService : BaseCRUDService<ReportResponse, ReportSearchObject, Report, ReportUpsertRequest, ReportUpsertRequest>, IReportService
     {
         private readonly INotificationService _notificationService;
+        private readonly ILogger<ReportService> _logger;
 
         private static readonly string[] TargetTypeNames = { "Startup", "BlogPost", "User" };
         private static readonly string[] StatusNames = { "Pending", "Reviewed", "Dismissed", "ActionTaken" };
 
-        public ReportService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService) : base(context, mapper)
+        public ReportService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<ReportService> logger) : base(context, mapper)
         {
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         private IQueryable<Report> BaseQuery => _context.Reports
@@ -177,7 +180,7 @@ namespace Startupba.Services.Services
         {
             base.MapInsertToEntity(entity, request);
             entity.Status = 0; // Pending
-            entity.CreatedAt = DateTime.Now;
+            entity.CreatedAt = DateTime.UtcNow;
             return entity;
         }
 
@@ -194,7 +197,7 @@ namespace Startupba.Services.Services
 
             entity.Status = request.Status;
             entity.AdminNote = request.AdminNote;
-            entity.ResolvedAt = DateTime.Now;
+            entity.ResolvedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
@@ -215,7 +218,7 @@ namespace Startupba.Services.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Notification error: {ex.Message}");
+                _logger.LogError(ex, "Failed to send report notification");
             }
 
             return MapToResponse(entity);
