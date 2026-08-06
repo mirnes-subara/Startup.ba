@@ -21,6 +21,12 @@ namespace Startupba.Services.Database
         [MaxLength(255)]
         public string? StripeCustomerId { get; set; }
 
+        /// <summary>
+        /// Stripe Refund id when this payment has been refunded via the Stripe sandbox/live API.
+        /// </summary>
+        [MaxLength(255)]
+        public string? StripeRefundId { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }

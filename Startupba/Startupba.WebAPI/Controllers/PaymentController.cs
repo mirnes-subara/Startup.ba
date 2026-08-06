@@ -79,5 +79,23 @@ namespace Startupba.WebAPI.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>
+        /// Full refund via Stripe Refund API. Admin only. Updates payment + donation and rolls back AmountRaised.
+        /// </summary>
+        [HttpPost("{id}/refund")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<ActionResult<PaymentResponse>> Refund(int id)
+        {
+            try
+            {
+                var result = await _service.RefundPaymentAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message, message = ex.Message });
+            }
+        }
     }
 }

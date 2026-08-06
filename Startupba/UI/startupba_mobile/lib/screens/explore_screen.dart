@@ -143,6 +143,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _loadData();
   }
 
+  void _showRecommenderInfo() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('How we recommend'),
+        content: const Text(
+          'We personalize startups from categories you like, favorite, or support with donations.\n\n'
+          'If you are new and have not interacted yet, we show popular approved startups instead.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -210,7 +229,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           if (_recommended.isNotEmpty && _selectedCategoryId == null && _searchQuery.isEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
                 child: Row(
                   children: [
                     Container(
@@ -222,11 +241,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Recommended for you',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    const Expanded(
+                      child: Text(
+                        'Recommended for you',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'How recommendations work',
+                      icon: Icon(Icons.info_outline, size: 20, color: Colors.grey[600]),
+                      onPressed: _showRecommenderInfo,
                     ),
                   ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'Based on categories you like, favorite, and support',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ),
             ),

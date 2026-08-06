@@ -6,6 +6,7 @@ import 'package:startupba_mobile/providers/blog_post_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/blog_details_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
+import 'package:startupba_mobile/screens/user_profile_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/empty_state.dart';
@@ -155,7 +156,26 @@ class _BlogListScreenState extends State<BlogListScreen> {
                                           children: [
                                             Text(post.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                             const SizedBox(height: 4),
-                                            Text('by ${post.authorName}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                            GestureDetector(
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => UserProfileScreen(
+                                                      userId: post.authorId,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                'by ${post.authorName}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.primary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
                                             if (post.isRepost) ...[
                                               const SizedBox(height: 2),
                                               GestureDetector(

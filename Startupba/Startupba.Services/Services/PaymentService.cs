@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -13,6 +14,10 @@ using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
 {
+    /// <summary>
+    /// Stripe PaymentIntent + refund integration. Uses Stripe test/sandbox keys
+    /// (sk_test_*) from configuration for real sandbox charges and refunds.
+    /// </summary>
     public class PaymentService : IPaymentService
     {
         private readonly StartupbaDbContext _context;
@@ -169,6 +174,76 @@ namespace Startupba.Services.Services
             return MapToResponse(reloaded);
         }
 
+        public async Task<PaymentResponse> RefundPaymentAsync(int paymentId)
+        {
+            var payment = await _context.Payments
+                .Include(p => p.Donation)
+                .FirstOrDefaultAsync(p => p.Id == paymentId);
+
+            if (payment == null)
+            {
+                throw new UserException($"Payment with ID {paymentId} not found.");
+            }
+
+            if (!string.Equals(payment.Status, "succeeded", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserException("Only succeeded payments can be refunded.");
+            }
+
+            if (payment.StripePaymentIntentId.StartsWith("pi_seed_", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserException(
+                    "Seeded demo payments cannot be refunded through Stripe. Use a real sandbox donation from the mobile app.");
+            }
+
+            if (payment.DonationId == null)
+            {
+                throw new UserException("Payment is not linked to a donation.");
+            }
+
+            var donation = payment.Donation
+                ?? await _context.Donations.FindAsync(payment.DonationId.Value);
+            if (donation == null)
+            {
+                throw new UserException("Linked donation was not found.");
+            }
+
+            if (!string.Equals(donation.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserException("Only payments with a completed donation can be refunded.");
+            }
+
+            StripeConfiguration.ApiKey = _stripeSecretKey;
+            try
+            {
+                var refundService = new RefundService();
+                var refund = await refundService.CreateAsync(new RefundCreateOptions
+                {
+                    PaymentIntent = payment.StripePaymentIntentId,
+                });
+
+                payment.StripeRefundId = refund.Id;
+                payment.Status = "refunded";
+                payment.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+            catch (StripeException ex)
+            {
+                throw new UserException($"Stripe refund failed: {ex.Message}");
+            }
+
+            await _donationService.RefundAsync(donation.Id);
+
+            var reloaded = await _context.Payments
+                .Include(p => p.Donation)
+                    .ThenInclude(d => d!.Startup)
+                .Include(p => p.Donation)
+                    .ThenInclude(d => d!.User)
+                .FirstAsync(p => p.Id == paymentId);
+
+            return MapToResponse(reloaded);
+        }
+
         public async Task<PaymentResponse?> GetByIdAsync(int id)
         {
             var payment = await _context.Payments
@@ -273,6 +348,7 @@ namespace Startupba.Services.Services
                 DonationId = entity.DonationId,
                 StripePaymentIntentId = entity.StripePaymentIntentId,
                 StripeCustomerId = entity.StripeCustomerId,
+                StripeRefundId = entity.StripeRefundId,
                 Amount = entity.Amount,
                 Currency = entity.Currency,
                 Status = entity.Status,

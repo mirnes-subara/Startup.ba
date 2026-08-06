@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -705,5 +706,44 @@ namespace Startupba.Services.Services
         }
 
         #endregion
+
+        /// <summary>
+        /// Soft-deletes a startup owned by the given user.
+        /// </summary>
+        public async Task<bool> DeleteOwnedAsync(int id, int userId)
+        {
+            var entity = await _context.Startups.FindAsync(id);
+            if (entity == null)
+                return false;
+
+            if (entity.FounderId != userId)
+            {
+                throw new UserException("You can only delete your own startups.");
+            }
+
+            if (!entity.IsActive)
+            {
+                return true;
+            }
+
+            entity.IsActive = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Soft-delete via standard DELETE; founder is resolved from the auth claims.
+        /// </summary>
+        public override async Task<bool> DeleteAsync(int id)
+        {
+            var claimId = _httpContextAccessor.HttpContext?.User
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+            {
+                throw new UserException("You must be signed in to delete a startup.");
+            }
+
+            return await DeleteOwnedAsync(id, userId);
+        }
     }
 }

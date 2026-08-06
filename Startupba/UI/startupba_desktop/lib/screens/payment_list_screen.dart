@@ -58,6 +58,34 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     _pageItems = start < _all.length ? _all.sublist(start, end) : [];
   }
 
+  Future<void> _refund(Payment p) async {
+    final ok = await ConfirmDialog.show(
+      context,
+      title: 'Refund payment',
+      message:
+          'Refund ${AppDateFormat.money(p.amount)} for payment #${p.id} via Stripe? This cannot be undone.',
+      destructive: true,
+      confirmLabel: 'Refund',
+    );
+    if (!ok || !mounted) return;
+
+    try {
+      await context.read<PaymentProvider>().refund(p.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment refunded via Stripe')),
+      );
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        await ErrorDialog.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
@@ -70,7 +98,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           Expanded(
             child: SingleChildScrollView(
               child: BaseTable(
-                title: 'Payment records',
+                title: 'Payment records (Stripe sandbox)',
                 columns: const [
                   BaseTableColumn(label: 'ID', numeric: true),
                   BaseTableColumn(label: 'Amount', numeric: true),
@@ -80,6 +108,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
                   BaseTableColumn(label: 'Customer'),
                   BaseTableColumn(label: 'Stripe intent'),
                   BaseTableColumn(label: 'Date'),
+                  BaseTableColumn(label: 'Actions'),
                 ],
                 rows: _pageItems
                     .map(
@@ -104,6 +133,14 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
                             ),
                           ),
                           DataCell(Text(AppDateFormat.dateTime(p.createdAt))),
+                          DataCell(
+                            p.status.toLowerCase() == 'succeeded'
+                                ? TextButton(
+                                    onPressed: () => _refund(p),
+                                    child: const Text('Refund'),
+                                  )
+                                : const Text('-'),
+                          ),
                         ],
                       ),
                     )

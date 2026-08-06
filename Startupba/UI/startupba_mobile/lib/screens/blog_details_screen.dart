@@ -9,6 +9,7 @@ import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/report_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
 import 'package:startupba_mobile/screens/startup_details_screen.dart';
+import 'package:startupba_mobile/screens/user_profile_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 
@@ -234,7 +235,22 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Text('by ${p.authorName}', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UserProfileScreen(userId: p.authorId),
+                          ),
+                        ),
+                        child: Text(
+                          'by ${p.authorName}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Text(dateFormat.format(p.createdAt), style: TextStyle(fontSize: 13, color: Colors.grey[400])),
                     ],
@@ -365,7 +381,23 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                           children: [
                             Row(
                               children: [
-                                Text(c.userName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          UserProfileScreen(userId: c.userId),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    c.userName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
                                 const Spacer(),
                                 Text(dateFormat.format(c.createdAt), style: TextStyle(fontSize: 11, color: Colors.grey[400])),
                               ],

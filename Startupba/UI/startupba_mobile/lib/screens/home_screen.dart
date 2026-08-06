@@ -9,6 +9,7 @@ import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/screens/blog_details_screen.dart';
 import 'package:startupba_mobile/screens/blog_edit_screen.dart';
 import 'package:startupba_mobile/screens/startup_details_screen.dart';
+import 'package:startupba_mobile/screens/user_profile_screen.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/startup_card.dart';
@@ -90,6 +91,25 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (_) {}
+  }
+
+  void _showRecommenderInfo() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('How we recommend'),
+        content: const Text(
+          'We personalize startups from categories you like, favorite, or support with donations.\n\n'
+          'If you are new and have not interacted yet, we show popular approved startups instead.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadData() async {
@@ -232,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_featured.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
                 child: Row(
                   children: [
                     Container(
@@ -244,11 +264,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Featured Startups',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    const Expanded(
+                      child: Text(
+                        'Featured Startups',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'How recommendations work',
+                      icon: Icon(Icons.info_outline, size: 20, color: Colors.grey[600]),
+                      onPressed: _showRecommenderInfo,
                     ),
                   ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'Based on categories you like, favorite, and support',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ),
             ),
@@ -370,12 +406,23 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
-                    child: Text(
-                      post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              UserProfileScreen(userId: post.authorId),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primary.withOpacity(0.15),
+                      child: Text(
+                        post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -383,9 +430,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post.authorName,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    UserProfileScreen(userId: post.authorId),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            post.authorName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.primary,
+                            ),
+                          ),
                         ),
                         Text(
                           dateFormat.format(post.createdAt),

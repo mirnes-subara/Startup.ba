@@ -9,6 +9,7 @@ namespace Startupba.Services.Interfaces
     {
         Task<PaymentIntentResponse> CreatePaymentIntentAsync(CreatePaymentIntentRequest request);
         Task<PaymentResponse> ConfirmPaymentAsync(int paymentId, ConfirmPaymentRequest request);
+        Task<PaymentResponse> RefundPaymentAsync(int paymentId);
         Task<PaymentResponse?> GetByIdAsync(int id);
         Task<PagedResult<PaymentResponse>> GetAsync(PaymentSearchObject search);
     }

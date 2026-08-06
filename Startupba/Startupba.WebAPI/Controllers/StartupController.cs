@@ -4,6 +4,7 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -25,6 +26,21 @@ namespace Startupba.WebAPI.Controllers
         public override async Task<StartupResponse?> GetById(int id)
         {
             return await base.GetById(id);
+        }
+
+        /// <summary>
+        /// Soft-deletes a startup. Only the founder may delete their own startup.
+        /// </summary>
+        [HttpDelete("{id}")]
+        public override async Task<bool> Delete(int id)
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+            {
+                return false;
+            }
+
+            return await StartupService.DeleteOwnedAsync(id, userId);
         }
 
         /// <summary>

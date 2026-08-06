@@ -61,6 +61,7 @@ class _MyStartupsScreenState extends State<MyStartupsScreen>
       final donationProvider = context.read<DonationProvider>();
       final startups = await startupProvider.get(filter: {
         'founderId': userId.toString(),
+        'IsActive': true,
         'pageSize': '50',
       });
       final favorites = await startupProvider.get(filter: {
@@ -92,6 +93,48 @@ class _MyStartupsScreenState extends State<MyStartupsScreen>
       ),
     );
     await _loadData();
+  }
+
+  Future<void> _confirmDeleteStartup(Startup s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete startup'),
+        content: Text('Delete "${s.name}"? This will hide it from the platform.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    try {
+      await context.read<StartupProvider>().delete(s.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Startup deleted'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      await _loadData();
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -357,6 +400,19 @@ class _MyStartupsScreenState extends State<MyStartupsScreen>
                     },
                   ),
                 ],
+                IconButton(
+                  tooltip: 'Delete',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: AppColors.danger,
+                  ),
+                  onPressed: () => _confirmDeleteStartup(s),
+                ),
               ],
             ),
             const SizedBox(height: 8),

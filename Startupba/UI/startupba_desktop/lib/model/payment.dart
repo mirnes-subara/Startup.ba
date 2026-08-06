@@ -8,6 +8,7 @@ class Payment {
   final int? donationId;
   final String stripePaymentIntentId;
   final String? stripeCustomerId;
+  final String? stripeRefundId;
   final double amount;
   final String currency;
   final String status;
@@ -30,6 +31,7 @@ class Payment {
     this.donationId,
     this.stripePaymentIntentId = '',
     this.stripeCustomerId,
+    this.stripeRefundId,
     this.amount = 0,
     this.currency = 'eur',
     this.status = '',

@@ -10,6 +10,16 @@ class PaymentProvider extends BaseProvider<Payment> {
   @override
   Payment fromJson(dynamic json) => Payment.fromJson(json);
 
+  /// Full refund via Stripe (admin).
+  Future<Payment> refund(int id) async {
+    var url = "${BaseProvider.baseUrl}$endpoint/$id/refund";
+    var response = await http.post(Uri.parse(url), headers: createHeaders());
+    if (isValidResponse(response)) {
+      return fromJson(jsonDecode(response.body));
+    }
+    throw Exception("Unknown error");
+  }
+
   /// Payment controller returns a plain list, not PagedResult.
   @override
   Future<SearchResult<Payment>> get({dynamic filter}) async {

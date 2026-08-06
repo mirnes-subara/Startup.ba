@@ -267,5 +267,39 @@ namespace Startupba.Services.Services
 
             return MapToResponse(entity);
         }
+
+        /// <summary>
+        /// Marks a completed donation as Refunded and rolls back AmountRaised.
+        /// Does not reverse a Completed startup status (avoids surprising founders).
+        /// </summary>
+        public async Task<DonationResponse?> RefundAsync(int id)
+        {
+            var entity = await _context.Donations
+                .Include(d => d.Startup)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (entity == null)
+                return null;
+
+            if (entity.Status == "Refunded")
+            {
+                return MapToResponse(entity);
+            }
+
+            if (entity.Status != "Completed")
+            {
+                throw new InvalidOperationException("Only completed donations can be refunded.");
+            }
+
+            entity.Status = "Refunded";
+
+            var startup = entity.Startup;
+            startup.AmountRaised = Math.Max(0, startup.AmountRaised - entity.Amount);
+            startup.UpdatedAt = DateTime.Now;
+            // Intentionally keep startup StatusId as-is (including Completed).
+
+            await _context.SaveChangesAsync();
+            return MapToResponse(entity);
+        }
     }
 }

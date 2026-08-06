@@ -22,5 +22,10 @@ namespace Startupba.Services.Interfaces
 
         // Content-based recommendations
         Task<List<StartupResponse>> GetRecommendedStartupsAsync(int userId, int count);
+
+        /// <summary>
+        /// Soft-deletes a startup (IsActive = false). Only the founder may delete.
+        /// </summary>
+        Task<bool> DeleteOwnedAsync(int id, int userId);
     }
 }

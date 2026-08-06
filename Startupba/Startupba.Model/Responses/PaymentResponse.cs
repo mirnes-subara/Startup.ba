@@ -8,6 +8,7 @@ namespace Startupba.Model.Responses
         public int? DonationId { get; set; }
         public string StripePaymentIntentId { get; set; } = string.Empty;
         public string? StripeCustomerId { get; set; }
+        public string? StripeRefundId { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
