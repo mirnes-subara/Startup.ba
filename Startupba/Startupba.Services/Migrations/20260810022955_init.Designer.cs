@@ -12,8 +12,8 @@ using Startupba.Services.Database;
 namespace Startupba.Services.Migrations
 {
     [DbContext(typeof(StartupbaDbContext))]
-    [Migration("20260805194329_AddBlogPostSharedFrom")]
-    partial class AddBlogPostSharedFrom
+    [Migration("20260810022955_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -667,6 +667,314 @@ namespace Startupba.Services.Migrations
                             CountryId = 5,
                             IsActive = true,
                             Name = "Graz"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CountryId = 1,
+                            IsActive = true,
+                            Name = "Bihac"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CountryId = 1,
+                            IsActive = true,
+                            Name = "Brcko"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CountryId = 1,
+                            IsActive = true,
+                            Name = "Trebinje"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CountryId = 2,
+                            IsActive = true,
+                            Name = "Osijek"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CountryId = 2,
+                            IsActive = true,
+                            Name = "Zadar"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CountryId = 2,
+                            IsActive = true,
+                            Name = "Dubrovnik"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CountryId = 3,
+                            IsActive = true,
+                            Name = "Nis"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CountryId = 3,
+                            IsActive = true,
+                            Name = "Kragujevac"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CountryId = 4,
+                            IsActive = true,
+                            Name = "Hamburg"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CountryId = 4,
+                            IsActive = true,
+                            Name = "Cologne"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CountryId = 5,
+                            IsActive = true,
+                            Name = "Linz"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CountryId = 5,
+                            IsActive = true,
+                            Name = "Salzburg"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CountryId = 6,
+                            IsActive = true,
+                            Name = "Ljubljana"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CountryId = 6,
+                            IsActive = true,
+                            Name = "Maribor"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CountryId = 6,
+                            IsActive = true,
+                            Name = "Koper"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CountryId = 7,
+                            IsActive = true,
+                            Name = "Podgorica"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CountryId = 7,
+                            IsActive = true,
+                            Name = "Budva"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            CountryId = 7,
+                            IsActive = true,
+                            Name = "Niksic"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            CountryId = 8,
+                            IsActive = true,
+                            Name = "Skopje"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            CountryId = 8,
+                            IsActive = true,
+                            Name = "Bitola"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            CountryId = 8,
+                            IsActive = true,
+                            Name = "Ohrid"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            CountryId = 9,
+                            IsActive = true,
+                            Name = "Rome"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            CountryId = 9,
+                            IsActive = true,
+                            Name = "Milan"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            CountryId = 9,
+                            IsActive = true,
+                            Name = "Naples"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            CountryId = 9,
+                            IsActive = true,
+                            Name = "Turin"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            CountryId = 10,
+                            IsActive = true,
+                            Name = "Zurich"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            CountryId = 10,
+                            IsActive = true,
+                            Name = "Geneva"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            CountryId = 10,
+                            IsActive = true,
+                            Name = "Bern"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            CountryId = 11,
+                            IsActive = true,
+                            Name = "Amsterdam"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            CountryId = 11,
+                            IsActive = true,
+                            Name = "Rotterdam"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            CountryId = 11,
+                            IsActive = true,
+                            Name = "The Hague"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            CountryId = 12,
+                            IsActive = true,
+                            Name = "Paris"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            CountryId = 12,
+                            IsActive = true,
+                            Name = "Lyon"
+                        },
+                        new
+                        {
+                            Id = 49,
+                            CountryId = 12,
+                            IsActive = true,
+                            Name = "Marseille"
+                        },
+                        new
+                        {
+                            Id = 50,
+                            CountryId = 13,
+                            IsActive = true,
+                            Name = "London"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            CountryId = 13,
+                            IsActive = true,
+                            Name = "Manchester"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            CountryId = 13,
+                            IsActive = true,
+                            Name = "Edinburgh"
+                        },
+                        new
+                        {
+                            Id = 53,
+                            CountryId = 14,
+                            IsActive = true,
+                            Name = "New York"
+                        },
+                        new
+                        {
+                            Id = 54,
+                            CountryId = 14,
+                            IsActive = true,
+                            Name = "San Francisco"
+                        },
+                        new
+                        {
+                            Id = 55,
+                            CountryId = 14,
+                            IsActive = true,
+                            Name = "Chicago"
+                        },
+                        new
+                        {
+                            Id = 56,
+                            CountryId = 14,
+                            IsActive = true,
+                            Name = "Austin"
+                        },
+                        new
+                        {
+                            Id = 57,
+                            CountryId = 15,
+                            IsActive = true,
+                            Name = "Istanbul"
+                        },
+                        new
+                        {
+                            Id = 58,
+                            CountryId = 15,
+                            IsActive = true,
+                            Name = "Ankara"
+                        },
+                        new
+                        {
+                            Id = 59,
+                            CountryId = 15,
+                            IsActive = true,
+                            Name = "Izmir"
                         });
                 });
 
@@ -838,6 +1146,76 @@ namespace Startupba.Services.Migrations
                             Code = "AT",
                             IsActive = true,
                             Name = "Austria"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "SI",
+                            IsActive = true,
+                            Name = "Slovenia"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Code = "ME",
+                            IsActive = true,
+                            Name = "Montenegro"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Code = "MK",
+                            IsActive = true,
+                            Name = "North Macedonia"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Code = "IT",
+                            IsActive = true,
+                            Name = "Italy"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Code = "CH",
+                            IsActive = true,
+                            Name = "Switzerland"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Code = "NL",
+                            IsActive = true,
+                            Name = "Netherlands"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Code = "FR",
+                            IsActive = true,
+                            Name = "France"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Code = "GB",
+                            IsActive = true,
+                            Name = "United Kingdom"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Code = "US",
+                            IsActive = true,
+                            Name = "United States"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Code = "TR",
+                            IsActive = true,
+                            Name = "Turkey"
                         });
                 });
 
@@ -1485,6 +1863,10 @@ namespace Startupba.Services.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("StripeRefundId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -1628,6 +2010,41 @@ namespace Startupba.Services.Migrations
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Local),
                             Value = "support@startupba.com"
                         });
+                });
+
+            modelBuilder.Entity("Startupba.Services.Database.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Startupba.Services.Database.Report", b =>
@@ -2725,7 +3142,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Anderson",
-                            PasswordHash = "SKCEf8PFXFpwXefUyKkpl6MMBen54WiyctXTCdWrHd0=",
+                            PasswordHash = "1PPqaF2JFHRdZ6aqa3VMimfEBqeyv8AGuccho8s4MHk=",
                             PasswordSalt = "aGk9AqtPuyMxuMw5kVMi5A==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "desktop"
@@ -2742,7 +3159,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Foster",
-                            PasswordHash = "6txXhSyUQAMu+2DYKmqwXaawxzarZlrv0fme7yntd8Q=",
+                            PasswordHash = "17Zt8712G7zeS0f+zOGoHxmvZuXSTQ0hVaI8Zc353JQ=",
                             PasswordSalt = "1STBoIEdpJWS+EEIXMAGPg==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "mobile"
@@ -2759,7 +3176,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Clark",
-                            PasswordHash = "oivlxLt1XSM26t5Hfmu6pb71+2yL+u3wxmdgnLRCkxw=",
+                            PasswordHash = "nd+29z0ehe4DWNr8rZSlOqx0lffQKJPh2kq8QCmdw6U=",
                             PasswordSalt = "eElvpyM+TaKIvPjtwWpHHw==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder2"
@@ -2776,7 +3193,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Novak",
-                            PasswordHash = "r9FeGAqqkeIEagCqdkgEBC7ECDDTMBHTdPa1MQmRoUc=",
+                            PasswordHash = "IcWlJxfnmIwu+m0tzGLrgYDv0MK02WiG4tbCeujs6HU=",
                             PasswordSalt = "Z7meJcRp90X4bS/7Y9NncA==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder3"
@@ -2793,7 +3210,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Miller",
-                            PasswordHash = "cQ+S2ZuSM47cqzJKfJ1FsX2QjuzUFM5iZjIVZslQbr4=",
+                            PasswordHash = "NsyveZe4YeIzQTHOpH0KtyMnvAulRhhZjEAaEZGwR64=",
                             PasswordSalt = "EbcFiMx6vIqIJsNFsY9DTQ==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor1"
@@ -2810,7 +3227,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Johnson",
-                            PasswordHash = "QG+H5bm7cAMGadRl00YKhgzeK+iRjAP9kjwPt8sd/fo=",
+                            PasswordHash = "fIbPExVnVzU9iqU9O5VR6V+Vr1DxO9z5U/SgRkiJIrc=",
                             PasswordSalt = "of8eCvG1jGgNTYTz/C1n7g==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor2"
@@ -2827,7 +3244,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Weber",
-                            PasswordHash = "6pmzhvpFyXOrbYiaqbaNK41+vPp68IdCSeDXoMOVcKM=",
+                            PasswordHash = "LiEnPXO5rRO5E5MTi2U7gYaP1gQwLNj+5v9ja2Byqh0=",
                             PasswordSalt = "ob4080Eooa8D2avTDmXFVA==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor3"
@@ -2844,7 +3261,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Becker",
-                            PasswordHash = "zsBeJa5KxQev4GxSm3cZ13f3jnPOQBavdiAbcOtpcFo=",
+                            PasswordHash = "aNhaOOAgSBCEJpZoe7ooikUH8HMLl4f9EQXYBLV5WJU=",
                             PasswordSalt = "6j4bFSWcwXYY2y6OiBRTXg==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder4"
@@ -3097,6 +3514,17 @@ namespace Startupba.Services.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Donation");
+                });
+
+            modelBuilder.Entity("Startupba.Services.Database.RefreshToken", b =>
+                {
+                    b.HasOne("Startupba.Services.Database.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Startupba.Services.Database.Report", b =>

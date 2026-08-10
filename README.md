@@ -82,6 +82,12 @@ API default: `http://localhost:5130` (Swagger UI available in Development).
 - **Desktop:** `cd Startupba/UI/startupba_desktop` → `flutter run -d windows` (API `http://localhost:5130/`)
 - **Mobile (emulator):** `cd Startupba/UI/startupba_mobile` → `flutter run` (API default `http://10.0.2.2:5130/`)
 
+Override the API host with:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5130/
+```
+
 ## Security
 
 - JWT signature validation (issuer, audience, lifetime, signing key)

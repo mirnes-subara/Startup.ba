@@ -10,7 +10,7 @@ class AnalyticsProvider with ChangeNotifier {
   Future<Analytics> getAnalytics() async {
     final baseUrl = BaseProvider.baseUrl ??
         const String.fromEnvironment(
-          "baseUrl",
+          "API_BASE_URL",
           defaultValue: "http://localhost:5130/",
         );
     final response = await http.get(
@@ -28,7 +28,7 @@ class AnalyticsProvider with ChangeNotifier {
   Future<UserAnalytics> getUserAnalytics(int userId) async {
     final baseUrl = BaseProvider.baseUrl ??
         const String.fromEnvironment(
-          "baseUrl",
+          "API_BASE_URL",
           defaultValue: "http://localhost:5130/",
         );
     final response = await http.get(

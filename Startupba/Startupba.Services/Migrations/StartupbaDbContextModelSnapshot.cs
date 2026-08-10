@@ -3139,7 +3139,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Anderson",
-                            PasswordHash = "SKCEf8PFXFpwXefUyKkpl6MMBen54WiyctXTCdWrHd0=",
+                            PasswordHash = "1PPqaF2JFHRdZ6aqa3VMimfEBqeyv8AGuccho8s4MHk=",
                             PasswordSalt = "aGk9AqtPuyMxuMw5kVMi5A==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "desktop"
@@ -3156,7 +3156,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Foster",
-                            PasswordHash = "6txXhSyUQAMu+2DYKmqwXaawxzarZlrv0fme7yntd8Q=",
+                            PasswordHash = "17Zt8712G7zeS0f+zOGoHxmvZuXSTQ0hVaI8Zc353JQ=",
                             PasswordSalt = "1STBoIEdpJWS+EEIXMAGPg==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "mobile"
@@ -3173,7 +3173,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Clark",
-                            PasswordHash = "oivlxLt1XSM26t5Hfmu6pb71+2yL+u3wxmdgnLRCkxw=",
+                            PasswordHash = "nd+29z0ehe4DWNr8rZSlOqx0lffQKJPh2kq8QCmdw6U=",
                             PasswordSalt = "eElvpyM+TaKIvPjtwWpHHw==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder2"
@@ -3190,7 +3190,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Novak",
-                            PasswordHash = "r9FeGAqqkeIEagCqdkgEBC7ECDDTMBHTdPa1MQmRoUc=",
+                            PasswordHash = "IcWlJxfnmIwu+m0tzGLrgYDv0MK02WiG4tbCeujs6HU=",
                             PasswordSalt = "Z7meJcRp90X4bS/7Y9NncA==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder3"
@@ -3207,7 +3207,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = true,
                             LastName = "Miller",
-                            PasswordHash = "cQ+S2ZuSM47cqzJKfJ1FsX2QjuzUFM5iZjIVZslQbr4=",
+                            PasswordHash = "NsyveZe4YeIzQTHOpH0KtyMnvAulRhhZjEAaEZGwR64=",
                             PasswordSalt = "EbcFiMx6vIqIJsNFsY9DTQ==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor1"
@@ -3224,7 +3224,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Johnson",
-                            PasswordHash = "QG+H5bm7cAMGadRl00YKhgzeK+iRjAP9kjwPt8sd/fo=",
+                            PasswordHash = "fIbPExVnVzU9iqU9O5VR6V+Vr1DxO9z5U/SgRkiJIrc=",
                             PasswordSalt = "of8eCvG1jGgNTYTz/C1n7g==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor2"
@@ -3241,7 +3241,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Weber",
-                            PasswordHash = "6pmzhvpFyXOrbYiaqbaNK41+vPp68IdCSeDXoMOVcKM=",
+                            PasswordHash = "LiEnPXO5rRO5E5MTi2U7gYaP1gQwLNj+5v9ja2Byqh0=",
                             PasswordSalt = "ob4080Eooa8D2avTDmXFVA==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "investor3"
@@ -3258,7 +3258,7 @@ namespace Startupba.Services.Migrations
                             IsVerificationRequested = false,
                             IsVerified = false,
                             LastName = "Becker",
-                            PasswordHash = "zsBeJa5KxQev4GxSm3cZ13f3jnPOQBavdiAbcOtpcFo=",
+                            PasswordHash = "aNhaOOAgSBCEJpZoe7ooikUH8HMLl4f9EQXYBLV5WJU=",
                             PasswordSalt = "6j4bFSWcwXYY2y6OiBRTXg==",
                             PhoneNumber = "+387 61 111 111",
                             Username = "founder4"

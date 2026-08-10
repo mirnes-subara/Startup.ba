@@ -1,16 +1,9 @@
 using Startupba.Model;
-using Startupba.Model.Requests;
-using Startupba.Services;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using System.Linq;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Encodings.Web;
 
 namespace Startupba.WebAPI.Filters
 {
@@ -23,8 +16,13 @@ namespace Startupba.WebAPI.Filters
         public override void OnException(ExceptionContext context)
         {
             _logger.LogError(context.Exception, context.Exception.Message);
-            
-            if(context.Exception is UserException) 
+
+            if (context.Exception is NotFoundException)
+            {
+                context.ModelState.AddModelError("userError", context.Exception.Message);
+                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            }
+            else if (context.Exception is BusinessException)
             {
                 context.ModelState.AddModelError("userError", context.Exception.Message);
                 context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -44,4 +42,3 @@ namespace Startupba.WebAPI.Filters
         }
     }
 }
-

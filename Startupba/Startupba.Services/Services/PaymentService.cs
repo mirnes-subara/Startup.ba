@@ -183,7 +183,7 @@ namespace Startupba.Services.Services
 
             if (payment == null)
             {
-                throw new UserException($"Payment with ID {paymentId} not found.");
+                throw new NotFoundException($"Payment with ID {paymentId} not found.");
             }
 
             if (!string.Equals(payment.Status, "succeeded", StringComparison.OrdinalIgnoreCase))
@@ -206,7 +206,7 @@ namespace Startupba.Services.Services
                 ?? await _context.Donations.FindAsync(payment.DonationId.Value);
             if (donation == null)
             {
-                throw new UserException("Linked donation was not found.");
+                throw new NotFoundException("Linked donation was not found.");
             }
 
             if (!string.Equals(donation.Status, "Completed", StringComparison.OrdinalIgnoreCase))

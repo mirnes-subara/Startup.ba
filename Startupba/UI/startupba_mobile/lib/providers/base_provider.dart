@@ -15,11 +15,11 @@ abstract class BaseProvider<T> with ChangeNotifier {
   BaseProvider(String endpoint) {
     this.endpoint = endpoint;
     baseUrl = const String.fromEnvironment(
-      "baseUrl",
+      "API_BASE_URL",
       defaultValue: "",
     );
     if (baseUrl == null || baseUrl!.isEmpty) {
-      baseUrl = dotenv.env['baseUrl'] ?? "http://10.0.2.2:5130/";
+      baseUrl = dotenv.env['API_BASE_URL'] ?? "http://10.0.2.2:5130/";
     }
   }
 

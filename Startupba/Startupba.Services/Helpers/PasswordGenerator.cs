@@ -35,7 +35,7 @@ namespace Startupba.Services.Helpers
         {
             byte[] saltBytes = Convert.FromBase64String(salt);
 
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, saltBytes, Iterations))
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, saltBytes, Iterations, HashAlgorithmName.SHA256))
             {
                 byte[] hashBytes = pbkdf2.GetBytes(KeySize);
                 return Convert.ToBase64String(hashBytes);
@@ -47,7 +47,7 @@ namespace Startupba.Services.Helpers
             byte[] salt = Convert.FromBase64String(passwordSalt);
             byte[] hash = Convert.FromBase64String(passwordHash);
 
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations))
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
             {
                 byte[] hashBytes = pbkdf2.GetBytes(KeySize);
                 return hash.SequenceEqual(hashBytes);

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Startupba.Services.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -139,6 +139,7 @@ namespace Startupba.Services.Migrations
                     PasswordSalt = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     IsVerified = table.Column<bool>(type: "bit", nullable: false),
+                    IsVerificationRequested = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
@@ -234,6 +235,29 @@ namespace Startupba.Services.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshTokens",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshTokens", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RefreshTokens_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -343,6 +367,7 @@ namespace Startupba.Services.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     AuthorId = table.Column<int>(type: "int", nullable: false),
                     StartupId = table.Column<int>(type: "int", nullable: true),
+                    SharedFromBlogPostId = table.Column<int>(type: "int", nullable: true),
                     Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Content = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
                     ImageData = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
@@ -353,6 +378,11 @@ namespace Startupba.Services.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BlogPosts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BlogPosts_BlogPosts_SharedFromBlogPostId",
+                        column: x => x.SharedFromBlogPostId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_BlogPosts_Startups_StartupId",
                         column: x => x.StartupId,
@@ -577,6 +607,7 @@ namespace Startupba.Services.Migrations
                     DonationId = table.Column<int>(type: "int", nullable: true),
                     StripePaymentIntentId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     StripeCustomerId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    StripeRefundId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -629,7 +660,17 @@ namespace Startupba.Services.Migrations
                     { 2, "HR", true, "Croatia" },
                     { 3, "RS", true, "Serbia" },
                     { 4, "DE", true, "Germany" },
-                    { 5, "AT", true, "Austria" }
+                    { 5, "AT", true, "Austria" },
+                    { 6, "SI", true, "Slovenia" },
+                    { 7, "ME", true, "Montenegro" },
+                    { 8, "MK", true, "North Macedonia" },
+                    { 9, "IT", true, "Italy" },
+                    { 10, "CH", true, "Switzerland" },
+                    { 11, "NL", true, "Netherlands" },
+                    { 12, "FR", true, "France" },
+                    { 13, "GB", true, "United Kingdom" },
+                    { 14, "US", true, "United States" },
+                    { 15, "TR", true, "Turkey" }
                 });
 
             migrationBuilder.InsertData(
@@ -643,8 +684,8 @@ namespace Startupba.Services.Migrations
 
             migrationBuilder.InsertData(
                 table: "Payments",
-                columns: new[] { "Id", "Amount", "BillingAddress", "BillingCity", "BillingCountry", "BillingState", "BillingZipCode", "CreatedAt", "Currency", "CustomerEmail", "CustomerName", "DonationId", "PaymentMethod", "Status", "StripeCustomerId", "StripePaymentIntentId", "UpdatedAt" },
-                values: new object[] { 4, 500m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 12, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", null, "card", "pending", "cus_seed_0000000004", "pi_seed_0000000004", null });
+                columns: new[] { "Id", "Amount", "BillingAddress", "BillingCity", "BillingCountry", "BillingState", "BillingZipCode", "CreatedAt", "Currency", "CustomerEmail", "CustomerName", "DonationId", "PaymentMethod", "Status", "StripeCustomerId", "StripePaymentIntentId", "StripeRefundId", "UpdatedAt" },
+                values: new object[] { 4, 500m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 12, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", null, "card", "pending", "cus_seed_0000000004", "pi_seed_0000000004", null, null });
 
             migrationBuilder.InsertData(
                 table: "PlatformSettings",
@@ -697,22 +738,66 @@ namespace Startupba.Services.Migrations
                     { 12, 4, true, "Munich" },
                     { 13, 4, true, "Frankfurt" },
                     { 14, 5, true, "Vienna" },
-                    { 15, 5, true, "Graz" }
+                    { 15, 5, true, "Graz" },
+                    { 16, 1, true, "Bihac" },
+                    { 17, 1, true, "Brcko" },
+                    { 18, 1, true, "Trebinje" },
+                    { 19, 2, true, "Osijek" },
+                    { 20, 2, true, "Zadar" },
+                    { 21, 2, true, "Dubrovnik" },
+                    { 22, 3, true, "Nis" },
+                    { 23, 3, true, "Kragujevac" },
+                    { 24, 4, true, "Hamburg" },
+                    { 25, 4, true, "Cologne" },
+                    { 26, 5, true, "Linz" },
+                    { 27, 5, true, "Salzburg" },
+                    { 28, 6, true, "Ljubljana" },
+                    { 29, 6, true, "Maribor" },
+                    { 30, 6, true, "Koper" },
+                    { 31, 7, true, "Podgorica" },
+                    { 32, 7, true, "Budva" },
+                    { 33, 7, true, "Niksic" },
+                    { 34, 8, true, "Skopje" },
+                    { 35, 8, true, "Bitola" },
+                    { 36, 8, true, "Ohrid" },
+                    { 37, 9, true, "Rome" },
+                    { 38, 9, true, "Milan" },
+                    { 39, 9, true, "Naples" },
+                    { 40, 9, true, "Turin" },
+                    { 41, 10, true, "Zurich" },
+                    { 42, 10, true, "Geneva" },
+                    { 43, 10, true, "Bern" },
+                    { 44, 11, true, "Amsterdam" },
+                    { 45, 11, true, "Rotterdam" },
+                    { 46, 11, true, "The Hague" },
+                    { 47, 12, true, "Paris" },
+                    { 48, 12, true, "Lyon" },
+                    { 49, 12, true, "Marseille" },
+                    { 50, 13, true, "London" },
+                    { 51, 13, true, "Manchester" },
+                    { 52, 13, true, "Edinburgh" },
+                    { 53, 14, true, "New York" },
+                    { 54, 14, true, "San Francisco" },
+                    { 55, 14, true, "Chicago" },
+                    { 56, 14, true, "Austin" },
+                    { 57, 15, true, "Istanbul" },
+                    { 58, 15, true, "Ankara" },
+                    { 59, 15, true, "Izmir" }
                 });
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "CityId", "CreatedAt", "Email", "FirstName", "GenderId", "IsActive", "IsVerified", "LastLoginAt", "LastName", "PasswordHash", "PasswordSalt", "PhoneNumber", "Picture", "Username" },
+                columns: new[] { "Id", "CityId", "CreatedAt", "Email", "FirstName", "GenderId", "IsActive", "IsVerificationRequested", "IsVerified", "LastLoginAt", "LastName", "PasswordHash", "PasswordSalt", "PhoneNumber", "Picture", "Username" },
                 values: new object[,]
                 {
-                    { 1, 1, new DateTime(2025, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "admin@startupba.com", "James", 1, true, true, null, "Anderson", "SKCEf8PFXFpwXefUyKkpl6MMBen54WiyctXTCdWrHd0=", "aGk9AqtPuyMxuMw5kVMi5A==", "+387 61 111 111", null, "desktop" },
-                    { 2, 1, new DateTime(2025, 6, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "startup.ba.support1@gmail.com", "Adam", 1, true, true, null, "Foster", "6txXhSyUQAMu+2DYKmqwXaawxzarZlrv0fme7yntd8Q=", "1STBoIEdpJWS+EEIXMAGPg==", "+387 61 111 111", null, "mobile" },
-                    { 3, 2, new DateTime(2025, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder2@startupba.com", "Emma", 2, true, true, null, "Clark", "oivlxLt1XSM26t5Hfmu6pb71+2yL+u3wxmdgnLRCkxw=", "eElvpyM+TaKIvPjtwWpHHw==", "+387 61 111 111", null, "founder2" },
-                    { 4, 6, new DateTime(2025, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder3@startupba.com", "David", 1, true, true, null, "Novak", "r9FeGAqqkeIEagCqdkgEBC7ECDDTMBHTdPa1MQmRoUc=", "Z7meJcRp90X4bS/7Y9NncA==", "+387 61 111 111", null, "founder3" },
-                    { 5, 1, new DateTime(2025, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor1@startupba.com", "Sarah", 2, true, true, null, "Miller", "cQ+S2ZuSM47cqzJKfJ1FsX2QjuzUFM5iZjIVZslQbr4=", "EbcFiMx6vIqIJsNFsY9DTQ==", "+387 61 111 111", null, "investor1" },
-                    { 6, 9, new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor2@startupba.com", "Mark", 1, true, false, null, "Johnson", "QG+H5bm7cAMGadRl00YKhgzeK+iRjAP9kjwPt8sd/fo=", "of8eCvG1jGgNTYTz/C1n7g==", "+387 61 111 111", null, "investor2" },
-                    { 7, 14, new DateTime(2025, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor3@startupba.com", "Lena", 2, true, false, null, "Weber", "6pmzhvpFyXOrbYiaqbaNK41+vPp68IdCSeDXoMOVcKM=", "ob4080Eooa8D2avTDmXFVA==", "+387 61 111 111", null, "investor3" },
-                    { 8, 11, new DateTime(2025, 9, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder4@startupba.com", "Tom", 1, true, false, null, "Becker", "zsBeJa5KxQev4GxSm3cZ13f3jnPOQBavdiAbcOtpcFo=", "6j4bFSWcwXYY2y6OiBRTXg==", "+387 61 111 111", null, "founder4" }
+                    { 1, 1, new DateTime(2025, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "admin@startupba.com", "James", 1, true, false, true, null, "Anderson", "1PPqaF2JFHRdZ6aqa3VMimfEBqeyv8AGuccho8s4MHk=", "aGk9AqtPuyMxuMw5kVMi5A==", "+387 61 111 111", null, "desktop" },
+                    { 2, 1, new DateTime(2025, 6, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "startup.ba.support1@gmail.com", "Adam", 1, true, false, true, null, "Foster", "17Zt8712G7zeS0f+zOGoHxmvZuXSTQ0hVaI8Zc353JQ=", "1STBoIEdpJWS+EEIXMAGPg==", "+387 61 111 111", null, "mobile" },
+                    { 3, 2, new DateTime(2025, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder2@startupba.com", "Emma", 2, true, false, true, null, "Clark", "nd+29z0ehe4DWNr8rZSlOqx0lffQKJPh2kq8QCmdw6U=", "eElvpyM+TaKIvPjtwWpHHw==", "+387 61 111 111", null, "founder2" },
+                    { 4, 6, new DateTime(2025, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder3@startupba.com", "David", 1, true, false, true, null, "Novak", "IcWlJxfnmIwu+m0tzGLrgYDv0MK02WiG4tbCeujs6HU=", "Z7meJcRp90X4bS/7Y9NncA==", "+387 61 111 111", null, "founder3" },
+                    { 5, 1, new DateTime(2025, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor1@startupba.com", "Sarah", 2, true, false, true, null, "Miller", "NsyveZe4YeIzQTHOpH0KtyMnvAulRhhZjEAaEZGwR64=", "EbcFiMx6vIqIJsNFsY9DTQ==", "+387 61 111 111", null, "investor1" },
+                    { 6, 9, new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor2@startupba.com", "Mark", 1, true, false, false, null, "Johnson", "fIbPExVnVzU9iqU9O5VR6V+Vr1DxO9z5U/SgRkiJIrc=", "of8eCvG1jGgNTYTz/C1n7g==", "+387 61 111 111", null, "investor2" },
+                    { 7, 14, new DateTime(2025, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), "investor3@startupba.com", "Lena", 2, true, false, false, null, "Weber", "LiEnPXO5rRO5E5MTi2U7gYaP1gQwLNj+5v9ja2Byqh0=", "ob4080Eooa8D2avTDmXFVA==", "+387 61 111 111", null, "investor3" },
+                    { 8, 11, new DateTime(2025, 9, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "founder4@startupba.com", "Tom", 1, true, false, false, null, "Becker", "aNhaOOAgSBCEJpZoe7ooikUH8HMLl4f9EQXYBLV5WJU=", "6j4bFSWcwXYY2y6OiBRTXg==", "+387 61 111 111", null, "founder4" }
                 });
 
             migrationBuilder.InsertData(
@@ -727,8 +812,8 @@ namespace Startupba.Services.Migrations
 
             migrationBuilder.InsertData(
                 table: "BlogPosts",
-                columns: new[] { "Id", "AuthorId", "Content", "CreatedAt", "ImageData", "IsActive", "StartupId", "Title", "UpdatedAt" },
-                values: new object[] { 4, 5, "After supporting a dozen projects on this platform, here are the five things I always check before donating: a clear problem statement, a realistic funding target, a concrete plan for the money, an active founder who answers questions, and community engagement on the startup page.", new DateTime(2025, 10, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, "What I Look for Before Investing in a Startup", null });
+                columns: new[] { "Id", "AuthorId", "Content", "CreatedAt", "ImageData", "IsActive", "SharedFromBlogPostId", "StartupId", "Title", "UpdatedAt" },
+                values: new object[] { 4, 5, "After supporting a dozen projects on this platform, here are the five things I always check before donating: a clear problem statement, a realistic funding target, a concrete plan for the money, an active founder who answers questions, and community engagement on the startup page.", new DateTime(2025, 10, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, null, "What I Look for Before Investing in a Startup", null });
 
             migrationBuilder.InsertData(
                 table: "Chats",
@@ -826,13 +911,13 @@ namespace Startupba.Services.Migrations
 
             migrationBuilder.InsertData(
                 table: "BlogPosts",
-                columns: new[] { "Id", "AuthorId", "Content", "CreatedAt", "ImageData", "IsActive", "StartupId", "Title", "UpdatedAt" },
+                columns: new[] { "Id", "AuthorId", "Content", "CreatedAt", "ImageData", "IsActive", "SharedFromBlogPostId", "StartupId", "Title", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, 2, "It all began when I realized my building had no way to recycle properly. After months of prototyping smart bins in my garage, GreenCycle was born. In this post I want to share the journey so far and what we plan to do with the funding - from producing the first batch of bins to signing up local shops for the rewards program.", new DateTime(2025, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, 1, "How GreenCycle Started", null },
-                    { 2, 3, "Sending money to a friend across the border should not take three days and cost ten euros. PayLink was born out of that frustration. Here is how our instant payment network works and why we believe the region is ready for it.", new DateTime(2025, 9, 14, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, 2, "Why We Built PayLink", null },
-                    { 3, 4, "Chronic patients juggle therapies, appointments and measurements every single day. MediTrack puts all of that in one app connected to the doctor's office. We are sharing our clinical pilot results and the roadmap for the next six months.", new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, 3, "MediTrack: Digital Health for Everyone", null },
-                    { 5, 2, "A month after our beta launch, 100 students have completed their first course on LearnHub. Here is what we learned from their feedback and how the funding will help us produce twenty new project-based courses.", new DateTime(2025, 11, 2, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, 4, "LearnHub Reaches Its First 100 Students", null }
+                    { 1, 2, "It all began when I realized my building had no way to recycle properly. After months of prototyping smart bins in my garage, GreenCycle was born. In this post I want to share the journey so far and what we plan to do with the funding - from producing the first batch of bins to signing up local shops for the rewards program.", new DateTime(2025, 9, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, 1, "How GreenCycle Started", null },
+                    { 2, 3, "Sending money to a friend across the border should not take three days and cost ten euros. PayLink was born out of that frustration. Here is how our instant payment network works and why we believe the region is ready for it.", new DateTime(2025, 9, 14, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, 2, "Why We Built PayLink", null },
+                    { 3, 4, "Chronic patients juggle therapies, appointments and measurements every single day. MediTrack puts all of that in one app connected to the doctor's office. We are sharing our clinical pilot results and the roadmap for the next six months.", new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, 3, "MediTrack: Digital Health for Everyone", null },
+                    { 5, 2, "A month after our beta launch, 100 students have completed their first course on LearnHub. Here is what we learned from their feedback and how the funding will help us produce twenty new project-based courses.", new DateTime(2025, 11, 2, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, null, 4, "LearnHub Reaches Its First 100 Students", null }
                 });
 
             migrationBuilder.InsertData(
@@ -977,12 +1062,12 @@ namespace Startupba.Services.Migrations
 
             migrationBuilder.InsertData(
                 table: "Payments",
-                columns: new[] { "Id", "Amount", "BillingAddress", "BillingCity", "BillingCountry", "BillingState", "BillingZipCode", "CreatedAt", "Currency", "CustomerEmail", "CustomerName", "DonationId", "PaymentMethod", "Status", "StripeCustomerId", "StripePaymentIntentId", "UpdatedAt" },
+                columns: new[] { "Id", "Amount", "BillingAddress", "BillingCity", "BillingCountry", "BillingState", "BillingZipCode", "CreatedAt", "Currency", "CustomerEmail", "CustomerName", "DonationId", "PaymentMethod", "Status", "StripeCustomerId", "StripePaymentIntentId", "StripeRefundId", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, 5000m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 9, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", 1, "card", "succeeded", "cus_seed_0000000001", "pi_seed_0000000001", new DateTime(2025, 9, 10, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 2, 10000m, "Knez Mihailova 5", "Belgrade", "Serbia", null, "11000", new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor2@startupba.com", "Mark Johnson", 4, "card", "succeeded", "cus_seed_0000000002", "pi_seed_0000000002", new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 3, 20000m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", 7, "card", "succeeded", "cus_seed_0000000003", "pi_seed_0000000003", new DateTime(2025, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                    { 1, 5000m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 9, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", 1, "card", "succeeded", "cus_seed_0000000001", "pi_seed_0000000001", null, new DateTime(2025, 9, 10, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, 10000m, "Knez Mihailova 5", "Belgrade", "Serbia", null, "11000", new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor2@startupba.com", "Mark Johnson", 4, "card", "succeeded", "cus_seed_0000000002", "pi_seed_0000000002", null, new DateTime(2025, 9, 25, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, 20000m, "Ferhadija 12", "Sarajevo", "Bosnia and Herzegovina", null, "71000", new DateTime(2025, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "EUR", "investor1@startupba.com", "Sarah Miller", 7, "card", "succeeded", "cus_seed_0000000003", "pi_seed_0000000003", null, new DateTime(2025, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
                 });
 
             migrationBuilder.InsertData(
@@ -1010,6 +1095,11 @@ namespace Startupba.Services.Migrations
                 name: "IX_BlogPosts_AuthorId",
                 table: "BlogPosts",
                 column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BlogPosts_SharedFromBlogPostId",
+                table: "BlogPosts",
+                column: "SharedFromBlogPostId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BlogPosts_StartupId",
@@ -1101,6 +1191,17 @@ namespace Startupba.Services.Migrations
                 table: "PlatformSettings",
                 column: "Key",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshTokens_Token",
+                table: "RefreshTokens",
+                column: "Token",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshTokens_UserId",
+                table: "RefreshTokens",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reports_BlogPostId",
@@ -1235,6 +1336,9 @@ namespace Startupba.Services.Migrations
 
             migrationBuilder.DropTable(
                 name: "PlatformSettings");
+
+            migrationBuilder.DropTable(
+                name: "RefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "Reports");

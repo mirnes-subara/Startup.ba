@@ -239,7 +239,7 @@ namespace Startupba.Services.Services
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
             {
-                throw new UserException("User not found.");
+                throw new NotFoundException("User not found.");
             }
 
             if (request.NewPassword != request.NewPasswordConfirmation)

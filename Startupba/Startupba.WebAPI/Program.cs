@@ -131,6 +131,32 @@ builder.Services.AddControllers(x =>
     }
 );
 
+var corsOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+{
+    "http://localhost:5130",
+    "https://localhost:5130",
+    "http://127.0.0.1:5130",
+};
+var corsEnv = Environment.GetEnvironmentVariable("CORS__ORIGINS")
+    ?? builder.Configuration["CORS:ORIGINS"];
+if (!string.IsNullOrWhiteSpace(corsEnv))
+{
+    foreach (var origin in corsEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        corsOrigins.Add(origin);
+    }
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("StartupbaCors", policy =>
+    {
+        policy.WithOrigins(corsOrigins.ToArray())
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
@@ -162,7 +188,7 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -174,6 +200,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseCors("StartupbaCors");
 app.UseAuthentication();
 app.UseAuthorization();
 
