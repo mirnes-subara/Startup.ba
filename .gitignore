@@ -9,6 +9,10 @@
 !.env.example
 !**/.env.example
 
+# Client build ZIPs belong in GitHub Releases, not git history
+fit-build-*.zip
+_fit_build_stage/
+
 # User-specific files
 *.rsuser
 *.suo

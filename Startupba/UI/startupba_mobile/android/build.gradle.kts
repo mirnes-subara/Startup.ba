@@ -37,6 +37,16 @@ subprojects {
     }
 }
 
+// Stripe's issuing-push-provisioning pulls private play-services-tapandpay,
+// which breaks lintVitalAnalyzeRelease. Skip those lint tasks for release APKs.
+subprojects {
+    tasks.configureEach {
+        if (name.contains("lintVital")) {
+            enabled = false
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
