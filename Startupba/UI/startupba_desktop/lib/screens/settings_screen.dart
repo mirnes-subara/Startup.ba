@@ -38,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _loading = true);
     try {
       final result = await context.read<PlatformSettingProvider>().get(
-        filter: {'RetrieveAll': true},
+        filter: {'pageSize': 100},
       );
       final items = result.items ?? [];
       for (final c in _controllers.values) {

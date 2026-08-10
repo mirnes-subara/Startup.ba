@@ -58,5 +58,11 @@ namespace Startupba.Model.Responses
 
         // Logo image (first logo, if any)
         public byte[]? LogoImage { get; set; }
+
+        /// <summary>
+        /// Why this startup was recommended (set only on recommendation endpoints).
+        /// </summary>
+        public string? RecommendationReason { get; set; }
     }
 }
+

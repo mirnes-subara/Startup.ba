@@ -37,7 +37,7 @@ class _CityListScreenState extends State<CityListScreen> {
   Future<void> _loadCountries() async {
     try {
       final result = await context.read<CountryProvider>().get(
-        filter: {'RetrieveAll': true},
+        filter: {'pageSize': 100},
       );
       if (mounted) {
         setState(() => _countries = result.items ?? []);

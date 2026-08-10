@@ -131,6 +131,20 @@ class StartupCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (startup.recommendationReason != null &&
+                      startup.recommendationReason!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      startup.recommendationReason!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary.withOpacity(0.85),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     'by ${startup.founderName} · ${startup.cityName}',
@@ -252,6 +266,20 @@ class StartupCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (startup.recommendationReason != null &&
+                      startup.recommendationReason!.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      startup.recommendationReason!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.primary.withOpacity(0.85),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     startup.categoryName,

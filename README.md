@@ -1,174 +1,95 @@
-# eRent
+# Startup.ba
 
-A comprehensive property rental management system built with .NET Core backend and Flutter frontend applications.
+Crowdfunding platform for startups — ASP.NET Core Web API, RabbitMQ email subscriber, Flutter admin desktop app, and Flutter mobile app.
 
-## 📱 Applications
+## Applications
 
-The eRent system consists of three Flutter applications:
+| App | Path | Purpose |
+|-----|------|---------|
+| Desktop (admin) | `Startupba/UI/startupba_desktop` | Moderation, users, payments, analytics, PDF reports |
+| Mobile | `Startupba/UI/startupba_mobile` | Browse startups, donate (Stripe), blog, recommendations, profile |
 
-1. **Desktop Admin App** (`erent_desktop`) - Administrative interface for system management
-2. **Landlord Desktop App** (`erent_landlord_desktop`) - Property management interface for landlords
-3. **Mobile App** (`erent_mobile`) - Mobile application for regular users to browse and rent properties
+## Test logins
 
-## 🔐 Test Login Credentials
+All seeded users use password **`test`**:
 
-### Desktop Admin App
-- **Username:** `desktop` (pre-filled)
-- **Password:** `test` (pre-filled)
+| Username | Role / use |
+|----------|------------|
+| `desktop` | Administrator (desktop app) |
+| `mobile` | Standard user (founder + investor; mobile app) |
+| `founder2`, `founder3`, `founder4` | Founders |
+| `investor1`, `investor2`, `investor3` | Investors |
 
-### Landlord Desktop App
-- **Username:** `landlord` (pre-filled)
-- **Password:** `test` (pre-filled)
-
-### Mobile App
-- **Username:** `user` (pre-filled)
-- **Password:** `test` (pre-filled)
-
-> **Note:** All login forms come with pre-filled test credentials for easy testing.
-
-## 📧 Email Notifications
-
-### Landlord Notification Email
-The system uses the following email account for sending notifications to landlords:
-
-- **Email:** `test.vedadnuhic@gmail.com`
-- **Password:** `!testinfo123!`
-
-This email account is configured for the landlord user (User ID: 2) and receives email notifications for various rent-related events.
-
-### When Notifications Are Sent
-
-Email notifications are automatically sent in the following scenarios:
-
-1. **Pending** - When a user creates a new rent request
-   - **Recipient:** Landlord
-   - **Subject:** "New Rent Request - [Property Title]"
-
-2. **Cancelled** - When a user cancels a rent request (from Pending or Accepted status)
-   - **Recipient:** Landlord
-   - **Subject:** "Rent Cancelled - [Property Title]"
-
-3. **Accepted** - When a landlord accepts a rent request
-   - **Recipient:** User (tenant)
-   - **Subject:** "Rent Request Accepted - [Property Title]"
-
-4. **Rejected** - When a landlord rejects a rent request
-   - **Recipient:** User (tenant)
-   - **Subject:** "Rent Request Rejected - [Property Title]"
-
-5. **Paid** - When a user completes payment for an accepted rent
-   - **Recipient:** Landlord
-   - **Subject:** "Payment Received - [Property Title]"
-
-### Notification System Architecture
-
-The notification system uses:
-- **RabbitMQ** for message queuing
-- **eRent.Subscriber** service that listens for rent notifications
-- **Gmail SMTP** for sending HTML email notifications
-- Asynchronous processing to avoid blocking rent operations
-
-## 🏗️ Project Structure
+## Project structure
 
 ```
-eRent/
-├── eRent.WebAPI/              # .NET Core Web API (Backend)
-│   ├── Controllers/           # API Controllers
-│   ├── Filters/               # Exception and Authentication filters
-│   ├── Assets/                 # Property images and user pictures
-│   └── Program.cs             # Application entry point
-│
-├── eRent.Services/             # Business Logic Layer
-│   ├── Database/               # Entity Framework models and DbContext
-│   │   ├── DataSeeder.cs      # Database seeding with test data
-│   │   └── eRentDbContext.cs  # Database context
-│   ├── Services/              # Service implementations
-│   ├── Interfaces/             # Service interfaces
-│   └── Helpers/                # Utility classes
-│
-├── eRent.Model/                # Data Transfer Objects (DTOs)
-│   ├── Requests/               # Request models
-│   ├── Responses/              # Response models
-│   └── SearchObjects/          # Search/filter models
-│
-├── eRent.Subscriber/           # Email Notification Service
-│   ├── Services/               # Email sender and template services
-│   └── Models/                 # Notification models
-│
-└── UI/                         # Flutter Applications
-    ├── erent_desktop/          # Admin desktop app
-    ├── erent_landlord_desktop/ # Landlord desktop app
-    └── erent_mobile/           # Mobile app
+Startup.ba/
+├── Startupba/
+│   ├── Startupba.WebAPI/       # ASP.NET Core 8 API + Swagger
+│   ├── Startupba.Services/     # EF Core, business logic, JWT, Stripe, RabbitMQ publisher
+│   ├── Startupba.Model/        # Requests / responses / search objects
+│   ├── Startupba.Subscriber/   # Email worker (RabbitMQ → SMTP)
+│   ├── UI/
+│   │   ├── startupba_desktop/
+│   │   └── startupba_mobile/
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── Dockerfile.notifications
+│   └── .env                    # Local/secrets config (not committed secrets in docs)
+├── recommender-dokumentacija.md
+└── README.md
 ```
 
-## 🛠️ Technology Stack
+## Technology stack
 
-### Backend
-- **.NET Core** - Web API framework
-- **Entity Framework Core** - ORM for database operations
-- **SQL Server** - Database
-- **RabbitMQ** - Message queue for notifications
-- **Mapster** - Object mapping
-- **Swagger** - API documentation
+- **Backend:** .NET 8, Entity Framework Core, SQL Server, Mapster, Swagger
+- **Auth:** JWT Bearer access tokens + DB-backed refresh tokens
+- **Payments:** Stripe (sandbox / test keys via env)
+- **Messaging:** RabbitMQ + Subscriber worker for email
+- **Frontend:** Flutter (Dart)
+- **Infra:** Docker Compose (API, SQL Server, RabbitMQ, subscriber)
 
-### Frontend
-- **Flutter** - Cross-platform UI framework
-- **Dart** - Programming language
+## Features
 
-### Infrastructure
-- **Docker** - Containerization
-- **Docker Compose** - Multi-container orchestration
+- Startup CRUD, status workflow (pending → approve/reject/pause/resume)
+- Donations with Stripe PaymentIntent + admin refunds
+- Blog posts and comments
+- Content-based startup recommendations (with explainability)
+- Likes, favorites, chat, support tickets, reports, announcements
+- Admin analytics and **two PDF reports** (dashboard + category)
+- In-app notifications and email via RabbitMQ
 
-## 🗄️ Database
-
-The system uses SQL Server with Entity Framework Core. The database is automatically seeded with:
-- Test users (admin, landlords, regular users)
-- Property types and amenities
-- Sample properties with images
-- Countries and cities (Balkan region)
-- Sample rent records and reviews
-
-## 🚀 Getting Started
+## Getting started
 
 ### Prerequisites
-- .NET SDK
-- Flutter SDK
-- Docker and Docker Compose
-- SQL Server (or use Docker container)
 
-### Running with Docker
+- Docker Desktop (recommended) **or** .NET 8 SDK + SQL Server + RabbitMQ
+- Flutter SDK (for UI apps)
 
-1. Configure environment variables in `.env` file or `docker-compose.yml`
-2. Run: `docker-compose up`
+### Run API stack with Docker
 
-### Running Locally
+1. Configure [`Startupba/.env`](Startupba/.env) (SQL, RabbitMQ, SMTP, Stripe, JWT).
+2. From the `Startupba` folder:
 
-1. Start SQL Server and RabbitMQ
-2. Update connection strings in `appsettings.json`
-3. Run the WebAPI project
-4. Run the Subscriber service for email notifications
-5. Run Flutter apps from their respective directories
+```bash
+docker-compose up --build
+```
 
-## 📝 Features
+API default: `http://localhost:5130` (Swagger UI available in Development).
 
-- Property management (CRUD operations)
-- User authentication and authorization
-- Rent request management
-- Payment processing
-- Email notifications
-- Property search and filtering
-- Reviews and ratings
-- Analytics for landlords and admins
-- Chat functionality
-- Image upload and management
+### Run Flutter apps
 
-## 🔒 Security
+- **Desktop:** `cd Startupba/UI/startupba_desktop` → `flutter run -d windows` (API `http://localhost:5130/`)
+- **Mobile (emulator):** `cd Startupba/UI/startupba_mobile` → `flutter run` (API default `http://10.0.2.2:5130/`)
 
-- Basic Authentication for API access
-- Password hashing with salt
-- Role-based access control (Administrator, User, Landlord)
-- Input validation and exception handling
+## Security
 
-## 📄 License
+- JWT signature validation (issuer, audience, lifetime, signing key)
+- Refresh-token logout / password-change revocation
+- Password hashing with salt (PBKDF2)
+- Role-based authorization (`Administrator`, `User`)
+- Register ignores client-supplied admin roles; only admins may assign roles
 
-See LICENSE file for details.
+## License
+
+See LICENSE file for details (if present).

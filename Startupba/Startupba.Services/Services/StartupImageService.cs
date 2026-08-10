@@ -31,17 +31,7 @@ namespace Startupba.Services.Services
                 totalCount = await query.CountAsync();
             }
 
-            if (!search.RetrieveAll)
-            {
-                if (search.Page.HasValue)
-                {
-                    query = query.Skip(search.Page.Value * search.PageSize.Value);
-                }
-                if (search.PageSize.HasValue)
-                {
-                    query = query.Take(search.PageSize.Value);
-                }
-            }
+            query = ApplyPaging(query, search);
 
             var list = await query.OrderBy(si => si.DisplayOrder).ThenBy(si => si.CreatedAt).ToListAsync();
             return new PagedResult<StartupImageResponse>

@@ -56,10 +56,10 @@ class _StartupListScreenState extends State<StartupListScreen> {
   Future<void> _loadLookups() async {
     try {
       final cat = await context.read<CategoryProvider>().get(
-        filter: {'RetrieveAll': true, 'IncludeTotalCount': true},
+        filter: {'pageSize': 100, 'IncludeTotalCount': true},
       );
       final st = await context.read<StartupStatusProvider>().get(
-        filter: {'RetrieveAll': true},
+        filter: {'pageSize': 100},
       );
       if (mounted) {
         setState(() {

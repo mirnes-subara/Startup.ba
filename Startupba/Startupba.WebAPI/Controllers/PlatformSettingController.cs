@@ -13,17 +13,10 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
-        [AllowAnonymous]
-        public override async Task<PagedResult<PlatformSettingResponse>> Get([FromQuery] PlatformSettingSearchObject? search = null)
-        {
-            return await base.Get(search);
-        }
-
         /// <summary>
         /// Gets a setting by its key (e.g. "PlatformFeePercent", "TermsOfUse").
         /// </summary>
         [HttpGet("by-key/{key}")]
-        [AllowAnonymous]
         public async Task<ActionResult<PlatformSettingResponse>> GetByKey(string key)
         {
             var result = await ((IPlatformSettingService)_service).GetByKeyAsync(key);

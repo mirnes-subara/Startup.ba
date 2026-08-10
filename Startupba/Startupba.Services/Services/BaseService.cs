@@ -8,6 +8,7 @@ using Startupba.Model.SearchObjects;
 using System.Linq;
 using System;
 using MapsterMapper;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 
 namespace Startupba.Services.Services
@@ -34,19 +35,7 @@ namespace Startupba.Services.Services
                 totalCount = await query.CountAsync();
             }
 
-            if (!search.RetrieveAll)
-            {
-                if (search.Page.HasValue)
-                {
-                    query = query.Skip(search.Page.Value * search.PageSize.Value);
-                }
-                if (search.PageSize.HasValue)
-                {
-                    query = query.Take(search.PageSize.Value);
-                }
-            }
-
-
+            query = PagingHelper.ApplyPaging(query, search);
 
             var list = await query.ToListAsync();
             return new PagedResult<T>
@@ -55,6 +44,11 @@ namespace Startupba.Services.Services
                 TotalCount = totalCount
             };
         }
+
+        protected static IQueryable<TEntityQuery> ApplyPaging<TEntityQuery>(
+            IQueryable<TEntityQuery> query,
+            BaseSearchObject search)
+            => PagingHelper.ApplyPaging(query, search);
 
         protected virtual IQueryable<TEntity> ApplyFilter(IQueryable<TEntity> query, TSearch search)
         {

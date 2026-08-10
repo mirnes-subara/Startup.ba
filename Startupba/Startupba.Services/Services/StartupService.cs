@@ -62,17 +62,7 @@ namespace Startupba.Services.Services
                 totalCount = await query.CountAsync();
             }
 
-            if (!search.RetrieveAll)
-            {
-                if (search.Page.HasValue)
-                {
-                    query = query.Skip(search.Page.Value * search.PageSize.Value);
-                }
-                if (search.PageSize.HasValue)
-                {
-                    query = query.Take(search.PageSize.Value);
-                }
-            }
+            query = ApplyPaging(query, search);
 
             var list = await query.ToListAsync();
             return new PagedResult<StartupResponse>
@@ -668,7 +658,19 @@ namespace Startupba.Services.Services
                     && !interactedStartupIds.Contains(s.Id))
                 .ToListAsync();
 
-            List<Startup> recommended;
+            const string popularReason = "Popular approved startup";
+            var categoryNames = await _context.Categories
+                .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+            string CategoryReason(int categoryId)
+            {
+                var name = categoryNames.TryGetValue(categoryId, out var n) && !string.IsNullOrWhiteSpace(n)
+                    ? n
+                    : "this category";
+                return $"Based on your interest in {name}";
+            }
+
+            var recommended = new List<(Startup Startup, string Reason)>();
 
             if (categoryWeights.Any())
             {
@@ -685,17 +687,19 @@ namespace Startupba.Services.Services
                     .OrderByDescending(x => x.Score)
                     .ThenByDescending(x => x.Startup.CreatedAt)
                     .Take(count)
-                    .Select(x => x.Startup)
+                    .Select(x => (x.Startup, CategoryReason(x.Startup.CategoryId)))
                     .ToList();
 
                 // Fill up with popular startups if not enough category matches
                 if (recommended.Count < count)
                 {
+                    var already = recommended.Select(r => r.Startup).ToHashSet();
                     var fill = candidates
-                        .Except(recommended)
+                        .Where(s => !already.Contains(s))
                         .OrderByDescending(s => s.StartupLikes.Count + s.Donations.Count(d => d.Status == "Completed"))
                         .ThenByDescending(s => s.CreatedAt)
-                        .Take(count - recommended.Count);
+                        .Take(count - recommended.Count)
+                        .Select(s => (s, popularReason));
                     recommended.AddRange(fill);
                 }
             }
@@ -706,10 +710,16 @@ namespace Startupba.Services.Services
                     .OrderByDescending(s => s.StartupLikes.Count + s.Donations.Count(d => d.Status == "Completed"))
                     .ThenByDescending(s => s.CreatedAt)
                     .Take(count)
+                    .Select(s => (s, popularReason))
                     .ToList();
             }
 
-            return recommended.Select(MapToResponse).ToList();
+            return recommended.Select(item =>
+            {
+                var response = MapToResponse(item.Startup);
+                response.RecommendationReason = item.Reason;
+                return response;
+            }).ToList();
         }
 
         #endregion

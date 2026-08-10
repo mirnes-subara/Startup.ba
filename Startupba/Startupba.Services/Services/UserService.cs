@@ -12,6 +12,7 @@ using Startupba.Services.Database;
 using Startupba.Services.Interfaces;
 using Startupba.Model.Requests;
 using Startupba.Services.Helpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 
@@ -21,15 +22,18 @@ namespace Startupba.Services.Services
     {
         private readonly INotificationService _notificationService;
         private readonly ILogger<UserService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UserService(
             StartupbaDbContext context,
             IMapper mapper,
             INotificationService notificationService,
-            ILogger<UserService> logger) : base(context, mapper)
+            ILogger<UserService> logger,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public override async Task<PagedResult<UserResponse>> GetAsync(UserSearchObject search)
@@ -82,17 +86,7 @@ namespace Startupba.Services.Services
                 totalCount = await query.CountAsync();
             }
 
-            if (!search.RetrieveAll)
-            {
-                if (search.Page.HasValue)
-                {
-                    query = query.Skip(search.Page.Value * search.PageSize.Value);
-                }
-                if (search.PageSize.HasValue)
-                {
-                    query = query.Take(search.PageSize.Value);
-                }
-            }
+            query = ApplyPaging(query, search);
 
             var users = await query.ToListAsync();
             return new PagedResult<UserResponse>
@@ -152,25 +146,37 @@ namespace Startupba.Services.Services
                 user.PasswordHash = PasswordGenerator.GenerateHash(request.Password, user.PasswordSalt);
             }
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            // Assign roles: default to User role (RoleId = 2) if no roles specified
-            var roleIdsToAssign = (request.RoleIds != null && request.RoleIds.Any())
+            // Only administrators may assign roles from the request; others always get User (id 2).
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
+            var roleIdsToAssign = isAdmin && request.RoleIds != null && request.RoleIds.Any()
                 ? request.RoleIds
-                : new List<int> { 2 }; // Default to 'User' role
+                : new List<int> { 2 };
 
-            foreach (var roleId in roleIdsToAssign)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var userRole = new UserRole
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                foreach (var roleId in roleIdsToAssign)
                 {
-                    UserId = user.Id,
-                    RoleId = roleId,
-                    DateAssigned = DateTime.UtcNow
-                };
-                _context.UserRoles.Add(userRole);
+                    var userRole = new UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = roleId,
+                        DateAssigned = DateTime.UtcNow
+                    };
+                    _context.UserRoles.Add(userRole);
+                }
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
             }
-            await _context.SaveChangesAsync();
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             return await GetUserResponseWithRolesAsync(user.Id);
         }
@@ -206,13 +212,12 @@ namespace Startupba.Services.Services
             user.IsActive = request.IsActive;
             user.Picture = request.Picture;
 
-            // Update roles if provided and not empty
-            if (request.RoleIds != null && request.RoleIds.Any())
+            // Only administrators may change roles; ignore RoleIds for everyone else.
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
+            if (isAdmin && request.RoleIds != null && request.RoleIds.Any())
             {
-                // Remove existing roles
                 _context.UserRoles.RemoveRange(user.UserRoles);
 
-                // Add new roles
                 foreach (var roleId in request.RoleIds)
                 {
                     var userRole = new UserRole
@@ -224,7 +229,6 @@ namespace Startupba.Services.Services
                     _context.UserRoles.Add(userRole);
                 }
             }
-            // If RoleIds is null, preserve existing roles (don't update them)
 
             await _context.SaveChangesAsync();
             return await GetUserResponseWithRolesAsync(user.Id);

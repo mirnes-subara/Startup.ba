@@ -49,10 +49,10 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
       final cityProvider = context.read<CityProvider>();
 
       final genderResult = await genderProvider.get(
-        filter: {'RetrieveAll': true},
+        filter: {'pageSize': 100},
       );
       final countryResult = await countryProvider.get(
-        filter: {'RetrieveAll': true, 'IsActive': true},
+        filter: {'pageSize': 100, 'IsActive': true},
       );
 
       int? countryId;
@@ -65,7 +65,7 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
       if (countryId != null) {
         final cityResult = await cityProvider.get(
           filter: {
-            'RetrieveAll': true,
+            'pageSize': 100,
             'CountryId': countryId,
             'IsActive': true,
           },
@@ -99,7 +99,7 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
     try {
       final cityResult = await context.read<CityProvider>().get(
         filter: {
-          'RetrieveAll': true,
+          'pageSize': 100,
           'CountryId': countryId,
           'IsActive': true,
         },

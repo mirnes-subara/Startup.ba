@@ -40,7 +40,7 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
       final comments = await context.read<CommentProvider>().get(
         filter: {
           'BlogPostId': _post.id,
-          'RetrieveAll': true,
+          'pageSize': 100,
         },
       );
       if (mounted) {

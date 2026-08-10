@@ -42,7 +42,7 @@ class _CountryCityPickerState extends State<CountryCityPicker> {
       final cityProvider = context.read<CityProvider>();
 
       final countries = await countryProvider.get(
-        filter: {'RetrieveAll': true, 'IsActive': true},
+        filter: {'pageSize': 100, 'IsActive': true},
       );
 
       Country? selectedCountry;
@@ -60,7 +60,7 @@ class _CountryCityPickerState extends State<CountryCityPicker> {
           if (selectedCountry != null) {
             final cityResult = await cityProvider.get(
               filter: {
-                'RetrieveAll': true,
+                'pageSize': 100,
                 'CountryId': selectedCountry.id,
                 'IsActive': true,
               },
@@ -101,7 +101,7 @@ class _CountryCityPickerState extends State<CountryCityPicker> {
     try {
       final cityResult = await context.read<CityProvider>().get(
         filter: {
-          'RetrieveAll': true,
+          'pageSize': 100,
           'CountryId': country.id,
           'IsActive': true,
         },

@@ -1,6 +1,7 @@
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -96,11 +97,7 @@ namespace Startupba.Services.Services
                 result.TotalCount = await query.CountAsync();
             }
 
-            if (!search.RetrieveAll && search.Page.HasValue && search.PageSize.HasValue)
-            {
-                query = query.Skip(search.Page.Value * search.PageSize.Value)
-                             .Take(search.PageSize.Value);
-            }
+            query = PagingHelper.ApplyPaging(query, search);
 
             var list = await query.ToListAsync();
             result.Items = list.Select(MapToResponse).ToList();

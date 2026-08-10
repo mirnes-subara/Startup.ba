@@ -35,7 +35,7 @@ class _CityEditScreenState extends State<CityEditScreen> {
   Future<void> _loadCountries() async {
     try {
       final result = await context.read<CountryProvider>().get(
-        filter: {'RetrieveAll': true, 'IsActive': true},
+        filter: {'pageSize': 100, 'IsActive': true},
       );
       if (mounted) {
         setState(() {
