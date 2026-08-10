@@ -45,10 +45,10 @@ class MasterScreen extends StatelessWidget {
     );
   }
 
-  void _logout(BuildContext context) {
-    AuthProvider.username = null;
-    AuthProvider.password = null;
+  Future<void> _logout(BuildContext context) async {
+    await AuthProvider.logoutRemote();
     UserProvider.currentUser = null;
+    if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),

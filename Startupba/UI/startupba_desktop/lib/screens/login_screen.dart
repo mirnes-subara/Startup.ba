@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:startupba_desktop/providers/auth_provider.dart';
 import 'package:startupba_desktop/providers/user_provider.dart';
 import 'package:startupba_desktop/screens/dashboard_screen.dart';
 import 'package:startupba_desktop/theme/app_theme.dart';
@@ -46,8 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
-      AuthProvider.username = _usernameController.text.trim();
-      AuthProvider.password = _passwordController.text;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

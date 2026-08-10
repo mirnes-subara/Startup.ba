@@ -11,8 +11,8 @@ class StartupProvider extends BaseProvider<Startup> {
     return Startup.fromJson(data);
   }
 
-  Future<List<Startup>> getRecommended(int userId, {int count = 5}) async {
-    var url = "${BaseProvider.baseUrl}Startup/recommended/$userId?count=$count";
+  Future<List<Startup>> getRecommended({int count = 5}) async {
+    var url = "${BaseProvider.baseUrl}Startup/recommended?count=$count";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.get(uri, headers: headers);
@@ -25,9 +25,8 @@ class StartupProvider extends BaseProvider<Startup> {
     }
   }
 
-  Future<bool> like(int startupId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}Startup/$startupId/like?userId=$userId";
+  Future<bool> like(int startupId) async {
+    var url = "${BaseProvider.baseUrl}Startup/$startupId/like";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.post(uri, headers: headers);
@@ -38,9 +37,8 @@ class StartupProvider extends BaseProvider<Startup> {
     return false;
   }
 
-  Future<bool> unlike(int startupId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}Startup/$startupId/like?userId=$userId";
+  Future<bool> unlike(int startupId) async {
+    var url = "${BaseProvider.baseUrl}Startup/$startupId/like";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.delete(uri, headers: headers);
@@ -51,9 +49,8 @@ class StartupProvider extends BaseProvider<Startup> {
     return false;
   }
 
-  Future<bool> addFavorite(int startupId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}Startup/$startupId/favorite?userId=$userId";
+  Future<bool> addFavorite(int startupId) async {
+    var url = "${BaseProvider.baseUrl}Startup/$startupId/favorite";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.post(uri, headers: headers);
@@ -64,9 +61,8 @@ class StartupProvider extends BaseProvider<Startup> {
     return false;
   }
 
-  Future<bool> removeFavorite(int startupId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}Startup/$startupId/favorite?userId=$userId";
+  Future<bool> removeFavorite(int startupId) async {
+    var url = "${BaseProvider.baseUrl}Startup/$startupId/favorite";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.delete(uri, headers: headers);

@@ -8,7 +8,7 @@ Audit of [Startup.ba](file:///c:/Users/Administrator/Desktop/Startup.ba) project
 
 | Area | Status | Issues |
 |---|---|---|
-| Authentication & Authorization | ⚠️ Major | Basic Auth instead of JWT; register accepts `roleIds` from client |
+| Authentication & Authorization | ⚠️ Partial | JWT done; register still accepts `roleIds` from client; some `[AllowAnonymous]` GETs remain |
 | Service Lifetime (DI) | ✅ **FIXED** | All 21 services registered as `Scoped` in `Program.cs` |
 | Logging | ✅ **FIXED** | Replaced `Console.WriteLine` everywhere with `ILogger<T>` |
 | DateTime Consistency | ✅ **FIXED** | Replaced all `DateTime.Now` with `DateTime.UtcNow` across database models & services |
@@ -56,13 +56,17 @@ Audit of [Startup.ba](file:///c:/Users/Administrator/Desktop/Startup.ba) project
 
 ---
 
-### 4. Authentication: Basic Auth Instead of JWT
+### 4. Authentication: Basic Auth Instead of JWT — ✅ FIXED
 > **Requirement §2.4**: *"autentifikaciju i autorizaciju korisnika zasnovanu na JWT-u"*
 > **Requirement §5**: *"JWT parsiranje mora uključivati validaciju potpisa. Logout mora invalidirati token na serveru..."*
 
-[BasicAuthenticationHandler.cs](file:///c:/Users/Administrator/Desktop/Startup.ba/Startupba/Startupba.WebAPI/Filters/BasicAuthenticationHandler.cs) uses **HTTP Basic Authentication**, not JWT. This directly contradicts the requirement.
-
-**Fix**: Replace Basic Auth with JWT bearer token authentication. Implement token issuance, refresh, and server-side invalidation.
+- **Status:** **COMPLETED**
+- **Changes Made:**
+  - Replaced Basic Auth with `JwtBearer` in [Program.cs](file:///c:/Users/Administrator/Desktop/Startup.ba/Startupba/Startupba.WebAPI/Program.cs) (issuer/audience/lifetime/signing-key validation; `RoleClaimType = ClaimTypes.Role`).
+  - Added `RefreshToken` entity + migration; `IJwtTokenService` issues access (60m) + DB-backed refresh (7d).
+  - `POST Users/authenticate` returns `LoginResponse`; `POST Users/refresh` rotates refresh; `POST Users/logout` revokes refresh server-side; password change revokes all user refresh tokens and returns new tokens.
+  - Deleted `BasicAuthenticationHandler.cs`; Swagger uses Bearer JWT.
+  - Mobile/desktop clients send `Authorization: Bearer` and refresh once on 401.
 
 ---
 
@@ -113,18 +117,11 @@ While some public reads may be justified (e.g., browsing startups), endpoints li
 
 ---
 
-### 9. Like/Favorite Endpoints Accept `userId` from Query String
+### 9. Like/Favorite Endpoints Accept `userId` from Query String — ✅ FIXED
 > **Requirement §5**: *"userId se nikada ne prima iz rute ili body-ja za operacije vezane za trenutnog korisnika; uvijek se preuzima iz JWT tokena."*
 
-[StartupController.cs](file:///c:/Users/Administrator/Desktop/Startup.ba/Startupba/Startupba.WebAPI/Controllers/StartupController.cs#L117-L148):
-```csharp
-[HttpPost("{id}/like")]
-public async Task<ActionResult<bool>> Like(int id, [FromQuery] int userId)
-```
-
-User can like/unlike/favorite as any user by changing the query parameter.
-
-**Fix**: Extract `userId` from the auth token claims instead.
+- **Status:** **COMPLETED**
+- **Changes Made:** Startup like / unlike / favorite / remove-favorite endpoints now take `userId` from `ClaimTypes.NameIdentifier` (no query `userId`). Mobile clients updated accordingly. (BlogPost like still uses query `userId` — separate follow-up.)
 
 ---
 
@@ -137,12 +134,11 @@ No `recommender-dokumentacija.md` found in the repository.
 
 ---
 
-### 11. Recommendation Endpoint Is Anonymous
+### 11. Recommendation Endpoint Is Anonymous — ✅ PARTIALLY FIXED
 > **Requirement §5**: Write endpoints must be protected, and recommendations rely on user data.
 
-[GET Startup/recommended/{userId}](file:///c:/Users/Administrator/Desktop/Startup.ba/Startupba/Startupba.WebAPI/Controllers/StartupController.cs#L50-L56) is `[AllowAnonymous]`. Anyone can query recommendations for any user.
-
-**Fix**: Require authentication and extract userId from the JWT token.
+- **Status:** **PARTIALLY COMPLETED** (this endpoint)
+- **Changes Made:** `GET Startup/recommended` now requires auth and uses JWT `NameIdentifier` (route `{userId}` removed). Broader `[AllowAnonymous]` cleanup on other GETs remains as priority item 11.
 
 ---
 
@@ -188,8 +184,8 @@ baseUrl = const String.fromEnvironment("baseUrl", defaultValue: "");
 
 **Fix**: Rename to `API_BASE_URL` to match the spec.
 
-### 17. `ISystemClock` Deprecated
-[BasicAuthenticationHandler.cs](file:///c:/Users/Administrator/Desktop/Startup.ba/Startupba/Startupba.WebAPI/Filters/BasicAuthenticationHandler.cs#L22) uses `ISystemClock` which is deprecated in .NET 8+.
+### 17. `ISystemClock` Deprecated — ✅ FIXED (handler removed)
+Resolved by deleting `BasicAuthenticationHandler` as part of the JWT migration.
 
 ### 18. README Uses "eRent" Title Instead of Project Name
 [README.md](file:///c:/Users/Administrator/Desktop/Startup.ba/README.md#L1) starts with `# eRent` and references "eRent" throughout, but the project is **Startup.ba**. This appears to be a copy-paste remnant.
@@ -217,11 +213,11 @@ No PDF generation library or report endpoints found in the codebase.
 |---|---|---|---|
 | 1 | Switch services to `Scoped` | ✅ **DONE** | 5 min |
 | 2 | Replace `Console.WriteLine` with `ILogger<T>` | ✅ **DONE** | 30 min |
-| 3 | Replace Basic Auth with JWT | ⏳ Next | 2-4 hours |
+| 3 | Replace Basic Auth with JWT | ✅ **DONE** | 2-4 hours |
 | 4 | Remove `RetrieveAll`, enforce PageSize max | ⏳ Next | 30 min |
 | 5 | Fix register endpoint (ignore client `RoleIds`) | ⏳ Next | 15 min |
 | 6 | Standardize `DateTime.UtcNow` | ✅ **DONE** | 30 min |
-| 7 | Fix userId from JWT in like/favorite endpoints | ⏳ Pending | 20 min |
+| 7 | Fix userId from JWT in like/favorite endpoints | ✅ **DONE** | 20 min |
 | 8 | Singleton RabbitMQ connection | ✅ **DONE** | 30 min |
 | 9 | Add recommendation explainability | ⏳ Pending | 1 hour |
 | 10 | Create `recommender-dokumentacija.md` | ⏳ Pending | 1 hour |

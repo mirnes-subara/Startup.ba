@@ -23,12 +23,22 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
   }
 
+  Future<Response> _authorized(Future<Response> Function() request) async {
+    var response = await request();
+    if (response.statusCode == 401) {
+      final refreshed = await AuthProvider.tryRefresh();
+      if (refreshed) {
+        response = await request();
+      }
+    }
+    return response;
+  }
+
   Future<T?> getById(int id) async {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
 
-    var response = await http.get(uri, headers: headers);
+    var response = await _authorized(() => http.get(uri, headers: createHeaders()));
     if (isValidResponse(response)) {
       if (response.body.isEmpty) return null;
       var data = jsonDecode(response.body);
@@ -47,8 +57,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await _authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -64,9 +73,10 @@ abstract class BaseProvider<T> with ChangeNotifier {
   Future<T> insert(dynamic request) async {
     var url = "$baseUrl$endpoint";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
     var jsonRequest = jsonEncode(request);
-    var response = await http.post(uri, headers: headers, body: jsonRequest);
+    var response = await _authorized(
+      () => http.post(uri, headers: createHeaders(), body: jsonRequest),
+    );
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -79,9 +89,10 @@ abstract class BaseProvider<T> with ChangeNotifier {
   Future<T> update(int id, [dynamic request]) async {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
     var jsonRequest = jsonEncode(request);
-    var response = await http.put(uri, headers: headers, body: jsonRequest);
+    var response = await _authorized(
+      () => http.put(uri, headers: createHeaders(), body: jsonRequest),
+    );
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -94,8 +105,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
   Future<bool> delete(int id) async {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.delete(uri, headers: headers);
+    var response = await _authorized(() => http.delete(uri, headers: createHeaders()));
 
     if (response.statusCode == 204) return true;
     if (isValidResponse(response)) {
@@ -158,14 +168,10 @@ abstract class BaseProvider<T> with ChangeNotifier {
   }
 
   Map<String, String> createHeaders() {
-    String username = AuthProvider.username ?? "";
-    String password = AuthProvider.password ?? "";
-    String basicAuth =
-        "Basic ${base64Encode(utf8.encode('$username:$password'))}";
-
+    final bearer = AuthProvider.token ?? "";
     return {
       "Content-Type": "application/json",
-      "Authorization": basicAuth,
+      "Authorization": "Bearer $bearer",
     };
   }
 

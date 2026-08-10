@@ -16,10 +16,12 @@ namespace Startupba.WebAPI.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public UsersController(IUserService userService)
+        public UsersController(IUserService userService, IJwtTokenService jwtTokenService)
         {
             _userService = userService;
+            _jwtTokenService = jwtTokenService;
         }
 
         [HttpGet]
@@ -60,10 +62,10 @@ namespace Startupba.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Authenticated user changes their own password. Admins cannot change other users' passwords.
+        /// Authenticated user changes their own password. Revokes refresh tokens and issues a new session.
         /// </summary>
         [HttpPut("{id}/change-password")]
-        public async Task<ActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
+        public async Task<ActionResult<LoginResponse>> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
         {
             var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(claimId, out var callerId) || callerId != id)
@@ -72,7 +74,14 @@ namespace Startupba.WebAPI.Controllers
             }
 
             await _userService.ChangePasswordAsync(id, request);
-            return NoContent();
+            await _jwtTokenService.RevokeAllForUserAsync(id);
+
+            var user = await _userService.GetByIdAsync(id);
+            if (user == null)
+                return NotFound();
+
+            var login = await _jwtTokenService.IssueLoginResponseAsync(user);
+            return Ok(login);
         }
 
         [HttpDelete("{id}")]
@@ -124,12 +133,44 @@ namespace Startupba.WebAPI.Controllers
 
         [HttpPost("authenticate")]
         [AllowAnonymous]
-        public async Task<ActionResult<UserResponse>> Authenticate([FromBody] UserLoginRequest request)
+        public async Task<ActionResult<LoginResponse>> Authenticate([FromBody] UserLoginRequest request)
         {
             var user = await _userService.AuthenticateAsync(request);
             if (user == null)
                 return Unauthorized();
-            return Ok(user);
+
+            var login = await _jwtTokenService.IssueLoginResponseAsync(user);
+            return Ok(login);
+        }
+
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<ActionResult<LoginResponse>> Refresh([FromBody] RefreshTokenRequest request)
+        {
+            var login = await _jwtTokenService.RotateRefreshTokenAsync(request.RefreshToken);
+            if (login == null)
+                return Unauthorized();
+            return Ok(login);
+        }
+
+        /// <summary>
+        /// Revokes the supplied refresh token, or all refresh tokens for the caller if none is provided.
+        /// </summary>
+        [HttpPost("logout")]
+        public async Task<ActionResult> Logout([FromBody] RefreshTokenRequest? request)
+        {
+            if (!string.IsNullOrWhiteSpace(request?.RefreshToken))
+            {
+                await _jwtTokenService.RevokeRefreshTokenAsync(request.RefreshToken);
+                return NoContent();
+            }
+
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var callerId))
+                return Unauthorized();
+
+            await _jwtTokenService.RevokeAllForUserAsync(callerId);
+            return NoContent();
         }
     }
 }

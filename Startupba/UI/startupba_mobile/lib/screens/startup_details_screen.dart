@@ -83,7 +83,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final provider = context.read<StartupProvider>();
     try {
       if (_isLiked) {
-        await provider.unlike(_startup!.id, user.id);
+        await provider.unlike(_startup!.id);
         setState(() {
           _isLiked = false;
           _startup = _startup!.copyWith(
@@ -92,7 +92,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           );
         });
       } else {
-        await provider.like(_startup!.id, user.id);
+        await provider.like(_startup!.id);
         setState(() {
           _isLiked = true;
           _startup = _startup!.copyWith(
@@ -110,7 +110,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final provider = context.read<StartupProvider>();
     try {
       if (_isFavorited) {
-        await provider.removeFavorite(_startup!.id, user.id);
+        await provider.removeFavorite(_startup!.id);
         setState(() {
           _isFavorited = false;
           _startup = _startup!.copyWith(
@@ -119,7 +119,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           );
         });
       } else {
-        await provider.addFavorite(_startup!.id, user.id);
+        await provider.addFavorite(_startup!.id);
         setState(() {
           _isFavorited = true;
           _startup = _startup!.copyWith(

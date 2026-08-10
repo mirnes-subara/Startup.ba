@@ -25,14 +25,10 @@ class UserProvider extends BaseProvider<User> {
     );
 
     if (response.statusCode == 200) {
-      var data = jsonDecode(response.body);
-      var user = User.fromJson(data);
-
-      // Store credentials for subsequent requests
-      AuthProvider.username = username;
-      AuthProvider.password = password;
+      var data = jsonDecode(response.body) as Map<String, dynamic>;
+      AuthProvider.applyLogin(data, loginUsername: username);
+      var user = User.fromJson(data['user']);
       currentUser = user;
-
       return user;
     } else if (response.statusCode == 401) {
       return null;
@@ -72,8 +68,12 @@ class UserProvider extends BaseProvider<User> {
         'newPasswordConfirmation': newPasswordConfirmation,
       }),
     );
-    if (response.statusCode == 204 || isValidResponse(response)) {
-      AuthProvider.password = newPassword;
+    if (isValidResponse(response)) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      AuthProvider.applyLogin(data);
+      if (data['user'] != null) {
+        currentUser = User.fromJson(data['user']);
+      }
       return;
     }
     throw Exception("Failed to change password");

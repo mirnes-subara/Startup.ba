@@ -44,13 +44,10 @@ class AnalyticsProvider with ChangeNotifier {
   }
 
   Map<String, String> _headers() {
-    final username = AuthProvider.username ?? "";
-    final password = AuthProvider.password ?? "";
-    final basicAuth =
-        "Basic ${base64Encode(utf8.encode('$username:$password'))}";
+    final bearer = AuthProvider.token ?? "";
     return {
       "Content-Type": "application/json",
-      "Authorization": basicAuth,
+      "Authorization": "Bearer $bearer",
     };
   }
 }

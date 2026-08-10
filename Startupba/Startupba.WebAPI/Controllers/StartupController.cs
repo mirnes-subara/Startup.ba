@@ -45,12 +45,15 @@ namespace Startupba.WebAPI.Controllers
 
         /// <summary>
         /// Content-based recommendations: startups from categories the user
-        /// liked, favorited or donated to.
+        /// liked, favorited or donated to. User id is taken from the JWT.
         /// </summary>
-        [HttpGet("recommended/{userId}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<StartupResponse>>> GetRecommendedStartups(int userId, [FromQuery] int count = 5)
+        [HttpGet("recommended")]
+        public async Task<ActionResult<List<StartupResponse>>> GetRecommendedStartups([FromQuery] int count = 5)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
+
             var startups = await StartupService.GetRecommendedStartupsAsync(userId, count);
             return Ok(startups);
         }
@@ -115,8 +118,11 @@ namespace Startupba.WebAPI.Controllers
         /// Like (recommend) a startup. Returns false if already liked.
         /// </summary>
         [HttpPost("{id}/like")]
-        public async Task<ActionResult<bool>> Like(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> Like(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await StartupService.LikeAsync(id, userId));
         }
 
@@ -124,8 +130,11 @@ namespace Startupba.WebAPI.Controllers
         /// Remove a like from a startup.
         /// </summary>
         [HttpDelete("{id}/like")]
-        public async Task<ActionResult<bool>> Unlike(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> Unlike(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await StartupService.UnlikeAsync(id, userId));
         }
 
@@ -133,8 +142,11 @@ namespace Startupba.WebAPI.Controllers
         /// Add a startup to the user's favorites. Returns false if already favorited.
         /// </summary>
         [HttpPost("{id}/favorite")]
-        public async Task<ActionResult<bool>> AddFavorite(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> AddFavorite(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await StartupService.AddFavoriteAsync(id, userId));
         }
 
@@ -142,8 +154,11 @@ namespace Startupba.WebAPI.Controllers
         /// Remove a startup from the user's favorites.
         /// </summary>
         [HttpDelete("{id}/favorite")]
-        public async Task<ActionResult<bool>> RemoveFavorite(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> RemoveFavorite(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await StartupService.RemoveFavoriteAsync(id, userId));
         }
     }

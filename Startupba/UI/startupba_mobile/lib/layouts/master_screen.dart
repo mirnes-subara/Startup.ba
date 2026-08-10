@@ -129,10 +129,10 @@ class _MasterScreenState extends State<MasterScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: TextButton(
-              onPressed: () {
+              onPressed: () async {
+                await AuthProvider.logoutRemote();
                 UserProvider.currentUser = null;
-                AuthProvider.username = null;
-                AuthProvider.password = null;
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
                 Navigator.of(context)
                     .pushNamedAndRemoveUntil('/', (route) => false);

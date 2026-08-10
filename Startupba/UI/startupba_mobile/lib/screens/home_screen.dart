@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       if (startup.isLiked) {
-        await provider.unlike(startup.id, user.id);
+        await provider.unlike(startup.id);
         if (!mounted) return;
         setState(() {
           _featured[index] = startup.copyWith(
@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         });
       } else {
-        await provider.like(startup.id, user.id);
+        await provider.like(startup.id);
         if (!mounted) return;
         setState(() {
           _featured[index] = startup.copyWith(
@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
       List<Startup> featured = [];
       if (userId != null) {
         try {
-          featured = await startupProvider.getRecommended(userId, count: 6);
+          featured = await startupProvider.getRecommended(count: 6);
         } catch (_) {}
       }
       // Fallback: if no recommendations, load latest active startups

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:startupba_desktop/model/user.dart';
+import 'package:startupba_desktop/providers/auth_provider.dart';
 import 'package:startupba_desktop/providers/base_provider.dart';
 
 class UserProvider extends BaseProvider<User> {
@@ -23,8 +24,9 @@ class UserProvider extends BaseProvider<User> {
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        currentUser = User.fromJson(data);
+        var data = jsonDecode(response.body) as Map<String, dynamic>;
+        AuthProvider.applyLogin(data, loginUsername: username);
+        currentUser = User.fromJson(data['user']);
         return currentUser;
       } else if (response.statusCode == 401) {
         return null;

@@ -77,7 +77,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       List<Startup> recommended = [];
       if (userId != null) {
         try {
-          recommended = await startupProvider.getRecommended(userId, count: 6);
+          recommended = await startupProvider.getRecommended(count: 6);
         } catch (_) {}
       }
 
@@ -409,7 +409,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     try {
       if (startup.isLiked) {
-        await provider.unlike(startup.id, user.id);
+        await provider.unlike(startup.id);
         if (!mounted) return;
         setState(() {
           final updated = startup.copyWith(
@@ -423,7 +423,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           }
         });
       } else {
-        await provider.like(startup.id, user.id);
+        await provider.like(startup.id);
         if (!mounted) return;
         setState(() {
           final updated = startup.copyWith(
