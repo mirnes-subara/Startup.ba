@@ -13,6 +13,21 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
+        /// <summary>
+        /// Public read for registration / profile forms (no auth).
+        /// </summary>
+        [AllowAnonymous]
+        public override async Task<PagedResult<GenderResponse>> Get([FromQuery] GenderSearchObject? search = null)
+        {
+            return await base.Get(search);
+        }
+
+        [AllowAnonymous]
+        public override async Task<GenderResponse?> GetById(int id)
+        {
+            return await base.GetById(id);
+        }
+
         [Authorize(Roles = "Administrator")]
         public override async Task<GenderResponse> Create([FromBody] GenderUpsertRequest request)
         {

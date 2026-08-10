@@ -26,7 +26,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Future<void> _load() async {
     try {
       final provider = context.read<AnnouncementProvider>();
-      final result = await provider.get(filter: {'pageSize': '50'});
+      final result = await provider.get(filter: {
+        'pageSize': '50',
+        'IsActive': true,
+      });
       if (mounted) setState(() { _announcements = result.items; _isLoading = false; });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   startupba-sql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2022-CU26-ubuntu-22.04
     restart: unless-stopped
     environment:
       - ACCEPT_EULA=Y
@@ -16,7 +16,7 @@ services:
       - startupba-2025
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.13-management
     container_name: rabbitmq
     restart: unless-stopped
     environment:

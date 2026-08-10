@@ -70,7 +70,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       }
 
       final results = await startupProvider.get(filter: filter);
-      final categories = await categoryProvider.get();
+      final categories = await categoryProvider.get(
+        filter: {'pageSize': 100, 'IsActive': true},
+      );
 
       // Load recommendations
       final userId = UserProvider.currentUser?.id;

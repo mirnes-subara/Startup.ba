@@ -48,7 +48,7 @@ namespace Startupba.Services.Database
         public decimal PlatformFeePercent { get; set; } = 0;
 
         /// <summary>
-        /// 1=Draft, 2=Pending, 3=Approved, 4=Rejected, 5=Paused, 6=Completed
+        /// 1=Draft, 2=Pending, 3=Approved, 4=Rejected, 5=Paused, 6=Completed, 7=Deleted
         /// </summary>
         [Required]
         public int StatusId { get; set; } = StartupStatuses.Pending;

@@ -319,6 +319,8 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
+            await EnsureNotDeletedAsync(id);
+
             var now = DateTime.UtcNow;
             decimal? fee = null;
             var feeSetting = await _context.PlatformSettings
@@ -371,6 +373,8 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
+            await EnsureNotDeletedAsync(id);
+
             var now = DateTime.UtcNow;
             var rows = await _context.Startups
                 .Where(s => s.Id == id && s.StatusId == StartupStatuses.Pending)
@@ -400,6 +404,8 @@ namespace Startupba.Services.Services
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
 
+            await EnsureNotDeletedAsync(id);
+
             var now = DateTime.UtcNow;
             var rows = await _context.Startups
                 .Where(s => s.Id == id && s.StatusId == StartupStatuses.Approved)
@@ -425,6 +431,8 @@ namespace Startupba.Services.Services
         {
             if (!await _context.Startups.AnyAsync(s => s.Id == id))
                 return null;
+
+            await EnsureNotDeletedAsync(id);
 
             var now = DateTime.UtcNow;
             var rows = await _context.Startups
@@ -591,6 +599,16 @@ namespace Startupba.Services.Services
             }
         }
 
+        private async Task EnsureNotDeletedAsync(int id)
+        {
+            var deleted = await _context.Startups.AnyAsync(s =>
+                s.Id == id && (!s.IsActive || s.StatusId == StartupStatuses.Deleted));
+            if (deleted)
+            {
+                throw new UserException("This startup has been deleted and cannot be moderated.");
+            }
+        }
+
         #endregion
 
         #region Content-based recommendations
@@ -738,12 +756,9 @@ namespace Startupba.Services.Services
                 throw new UserException("You can only delete your own startups.");
             }
 
-            if (!entity.IsActive)
-            {
-                return true;
-            }
-
             entity.IsActive = false;
+            entity.StatusId = StartupStatuses.Deleted;
+            entity.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }

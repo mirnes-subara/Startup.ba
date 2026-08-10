@@ -410,6 +410,9 @@ namespace Startupba.Services.Services
             if (user == null || !VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
                 return null;
 
+            if (!user.IsActive)
+                throw new UserException("Your account has been deactivated.");
+
             // Update last login time
             user.LastLoginAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();

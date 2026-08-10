@@ -65,7 +65,9 @@ class _StartupCreateScreenState extends State<StartupCreateScreen> {
 
   Future<void> _loadDropdowns() async {
     try {
-      final cats = await context.read<CategoryProvider>().get();
+      final cats = await context.read<CategoryProvider>().get(
+        filter: {'pageSize': 100, 'IsActive': true},
+      );
       if (!mounted) return;
 
       Category? selectedCat;

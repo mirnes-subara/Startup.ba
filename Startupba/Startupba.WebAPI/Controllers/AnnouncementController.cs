@@ -13,6 +13,20 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
+        /// <summary>
+        /// Non-admins (mobile) only see active announcements; admins see all for management.
+        /// </summary>
+        public override async Task<PagedResult<AnnouncementResponse>> Get([FromQuery] AnnouncementSearchObject? search = null)
+        {
+            search ??= new AnnouncementSearchObject();
+            if (!User.IsInRole("Administrator"))
+            {
+                search.IsActive = true;
+            }
+
+            return await base.Get(search);
+        }
+
         [Authorize(Roles = "Administrator")]
         public override async Task<AnnouncementResponse> Create([FromBody] AnnouncementUpsertRequest request)
         {

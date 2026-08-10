@@ -40,7 +40,10 @@ class AppColors {
         s.contains('dismissed')) {
       return danger;
     }
-    if (s.contains('paused') || s.contains('closed') || s.contains('inactive')) {
+    if (s.contains('paused') ||
+        s.contains('closed') ||
+        s.contains('inactive') ||
+        s.contains('deleted')) {
       return neutral;
     }
     return info;

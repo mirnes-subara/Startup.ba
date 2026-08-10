@@ -94,6 +94,39 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
     }
   }
 
+  Future<void> _reactivate() async {
+    final ok = await ConfirmDialog.show(
+      context,
+      title: 'Reactivate post',
+      message: 'Make this blog post visible on the platform again?',
+      confirmLabel: 'Reactivate',
+    );
+    if (!ok) return;
+    try {
+      await context.read<BlogPostProvider>().update(_post.id, {
+        'title': _post.title,
+        'content': _post.content,
+        'authorId': _post.authorId,
+        'isActive': true,
+        if (_post.startupId != null) 'startupId': _post.startupId,
+        if (_post.imageData != null) 'imageData': _post.imageData,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post reactivated')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        await ErrorDialog.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterScreen(
@@ -140,8 +173,8 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                           ],
                           const SizedBox(height: 16),
                           Text(_post.content),
-                          if (_post.isActive) ...[
-                            const SizedBox(height: 16),
+                          const SizedBox(height: 16),
+                          if (_post.isActive)
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.danger,
@@ -149,8 +182,16 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
                               onPressed: _deactivate,
                               icon: const Icon(Icons.visibility_off),
                               label: const Text('Deactivate'),
+                            )
+                          else
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.success,
+                              ),
+                              onPressed: _reactivate,
+                              icon: const Icon(Icons.visibility),
+                              label: const Text('Reactivate'),
                             ),
-                          ],
                         ],
                       ),
                     ),

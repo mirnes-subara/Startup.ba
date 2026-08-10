@@ -123,6 +123,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = ClaimTypes.NameIdentifier,
             ClockSkew = TimeSpan.FromMinutes(1),
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId))
+                {
+                    context.Fail(new SecurityTokenValidationException("Invalid user identity."));
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<StartupbaDbContext>();
+                var isActive = await db.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => (bool?)u.IsActive)
+                    .FirstOrDefaultAsync();
+
+                if (isActive != true)
+                {
+                    context.Fail(new SecurityTokenValidationException("User account is inactive."));
+                }
+            }
+        };
     });
 
 builder.Services.AddControllers(x =>

@@ -187,7 +187,8 @@ namespace Startupba.Services.Database
                 new StartupStatus { Id = 3, Name = "Approved", Description = "Startup is approved and visible to investors", IsActive = true },
                 new StartupStatus { Id = 4, Name = "Rejected", Description = "Startup was rejected by the administrator", IsActive = true },
                 new StartupStatus { Id = 5, Name = "Paused", Description = "Startup is temporarily paused by the administrator", IsActive = true },
-                new StartupStatus { Id = 6, Name = "Completed", Description = "Startup reached its funding target", IsActive = true }
+                new StartupStatus { Id = 6, Name = "Completed", Description = "Startup reached its funding target", IsActive = true },
+                new StartupStatus { Id = 7, Name = "Deleted", Description = "Startup was removed by the founder", IsActive = true }
             );
 
             #endregion

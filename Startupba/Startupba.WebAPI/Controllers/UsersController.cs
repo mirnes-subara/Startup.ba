@@ -58,6 +58,9 @@ namespace Startupba.WebAPI.Controllers
             if (updatedUser == null)
                 return NotFound();
 
+            if (!updatedUser.IsActive)
+                await _jwtTokenService.RevokeAllForUserAsync(id);
+
             return updatedUser;
         }
 

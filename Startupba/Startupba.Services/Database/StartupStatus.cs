@@ -5,7 +5,7 @@ namespace Startupba.Services.Database
 {
     /// <summary>
     /// Reference table for startup statuses.
-    /// Fixed IDs: 1=Draft, 2=Pending, 3=Approved, 4=Rejected, 5=Paused, 6=Completed
+    /// Fixed IDs: 1=Draft, 2=Pending, 3=Approved, 4=Rejected, 5=Paused, 6=Completed, 7=Deleted
     /// </summary>
     public class StartupStatus
     {
@@ -36,5 +36,6 @@ namespace Startupba.Services.Database
         public const int Rejected = 4;
         public const int Paused = 5;
         public const int Completed = 6;
+        public const int Deleted = 7;
     }
 }
