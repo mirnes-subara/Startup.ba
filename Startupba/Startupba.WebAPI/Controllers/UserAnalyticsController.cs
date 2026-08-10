@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Startupba.Services.Interfaces;
+using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -19,7 +20,27 @@ namespace Startupba.WebAPI.Controllers
             _userAnalyticsService = userAnalyticsService;
         }
 
+        /// <summary>
+        /// Gets analytics for the authenticated user (mobile "my analytics").
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetMyAnalytics()
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
+
+            var analytics = await _userAnalyticsService.GetUserAnalyticsAsync(userId);
+            if (analytics == null)
+                return NotFound();
+            return Ok(analytics);
+        }
+
+        /// <summary>
+        /// Gets analytics for a specific user. Administrator only.
+        /// </summary>
         [HttpGet("{userId}")]
+        [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> GetUserAnalytics(int userId)
         {
             var analytics = await _userAnalyticsService.GetUserAnalyticsAsync(userId);

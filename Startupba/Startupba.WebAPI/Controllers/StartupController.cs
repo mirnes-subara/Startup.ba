@@ -16,18 +16,6 @@ namespace Startupba.WebAPI.Controllers
 
         private IStartupService StartupService => (IStartupService)_service;
 
-        [AllowAnonymous]
-        public override async Task<PagedResult<StartupResponse>> Get([FromQuery] StartupSearchObject? search = null)
-        {
-            return await base.Get(search);
-        }
-
-        [AllowAnonymous]
-        public override async Task<StartupResponse?> GetById(int id)
-        {
-            return await base.GetById(id);
-        }
-
         /// <summary>
         /// Soft-deletes a startup. Only the founder may delete their own startup.
         /// </summary>

@@ -72,11 +72,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _markAllRead() async {
-    final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
+    if (UserProvider.currentUser == null) return;
     try {
       final provider = context.read<NotificationProvider>();
-      await provider.markAllAsRead(userId);
+      await provider.markAllAsRead();
       await _load();
     } catch (_) {}
   }

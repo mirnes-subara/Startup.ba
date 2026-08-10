@@ -13,16 +13,22 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
-        [AllowAnonymous]
-        public override async Task<PagedResult<GenderResponse>> Get([FromQuery] GenderSearchObject? search = null)
+        [Authorize(Roles = "Administrator")]
+        public override async Task<GenderResponse> Create([FromBody] GenderUpsertRequest request)
         {
-            return await base.Get(search);
+            return await base.Create(request);
         }
 
-        [AllowAnonymous]
-        public override async Task<GenderResponse?> GetById(int id)
+        [Authorize(Roles = "Administrator")]
+        public override async Task<GenderResponse?> Update(int id, [FromBody] GenderUpsertRequest request)
         {
-            return await base.GetById(id);
+            return await base.Update(id, request);
+        }
+
+        [Authorize(Roles = "Administrator")]
+        public override async Task<bool> Delete(int id)
+        {
+            return await base.Delete(id);
         }
     }
 }

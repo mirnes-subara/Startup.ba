@@ -44,8 +44,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   Future<void> _loadMessages({bool silent = false}) async {
     try {
       final provider = context.read<ChatProvider>();
-      final result = await provider.getConversationMessages(_currentUserId, widget.otherUserId, pageSize: 100);
-      await provider.markConversationAsRead(widget.otherUserId, _currentUserId);
+      final result = await provider.getConversationMessages(widget.otherUserId, pageSize: 100);
+      await provider.markConversationAsRead(widget.otherUserId);
       if (mounted) {
         setState(() {
           _messages = result.items.reversed.toList();

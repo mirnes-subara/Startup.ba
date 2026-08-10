@@ -60,7 +60,7 @@ class _BlogListScreenState extends State<BlogListScreen> {
 
     try {
       if (post.isLiked) {
-        await provider.unlike(post.id, user.id);
+        await provider.unlike(post.id);
         if (!mounted) return;
         setState(() {
           _posts[index] = post.copyWith(
@@ -69,7 +69,7 @@ class _BlogListScreenState extends State<BlogListScreen> {
           );
         });
       } else {
-        await provider.like(post.id, user.id);
+        await provider.like(post.id);
         if (!mounted) return;
         setState(() {
           _posts[index] = post.copyWith(

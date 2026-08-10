@@ -45,7 +45,6 @@ class _DonationScreenState extends State<DonationScreen> {
       // Create payment intent (+ pending donation on the server)
       final intent = await paymentProvider.createPaymentIntent(
         startupId: widget.startup.id,
-        userId: user.id,
         amount: _amount,
         currency: 'eur',
         customerName: customerName,

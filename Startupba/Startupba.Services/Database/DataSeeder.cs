@@ -1144,7 +1144,7 @@ namespace Startupba.Services.Database
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error seeding image files: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error seeding image files: {ex.Message}");
             }
         }
     }

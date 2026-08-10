@@ -28,11 +28,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _loadConversations() async {
-    final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
+    if (UserProvider.currentUser == null) return;
     try {
       final provider = context.read<ChatProvider>();
-      final conversations = await provider.getConversations(userId);
+      final conversations = await provider.getConversations();
       if (mounted) setState(() { _conversations = conversations; _isLoading = false; });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);

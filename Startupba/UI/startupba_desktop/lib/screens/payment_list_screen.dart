@@ -17,27 +17,43 @@ class PaymentListScreen extends StatefulWidget {
 }
 
 class _PaymentListScreenState extends State<PaymentListScreen> {
-  List<Payment> _all = [];
-  List<Payment> _pageItems = [];
+  final _ftsCtrl = TextEditingController();
+  String? _status;
+  List<Payment> _items = [];
   int _page = 0;
   int _pageSize = 20;
+  int _totalCount = 0;
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _search();
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _ftsCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search() async {
     setState(() => _loading = true);
     try {
-      final result = await context.read<PaymentProvider>().get();
-      final items = result.items ?? [];
+      final filter = <String, dynamic>{
+        'Page': _page,
+        'PageSize': _pageSize,
+        'IncludeTotalCount': true,
+      };
+      final fts = _ftsCtrl.text.trim();
+      if (fts.isNotEmpty) filter['FTS'] = fts;
+      if (_status != null && _status!.isNotEmpty) filter['Status'] = _status;
+
+      final result = await context.read<PaymentProvider>().get(filter: filter);
       if (mounted) {
         setState(() {
-          _all = items;
-          _applyPage();
+          _items = result.items ?? [];
+          _totalCount = result.totalCount ?? _items.length;
         });
       }
     } catch (e) {
@@ -52,18 +68,12 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     }
   }
 
-  void _applyPage() {
-    final start = _page * _pageSize;
-    final end = (start + _pageSize).clamp(0, _all.length);
-    _pageItems = start < _all.length ? _all.sublist(start, end) : [];
-  }
-
   Future<void> _refund(Payment p) async {
     final ok = await ConfirmDialog.show(
       context,
       title: 'Refund payment',
       message:
-          'Refund ${AppDateFormat.money(p.amount)} for payment #${p.id} via Stripe? This cannot be undone.',
+          'Refund ${AppDateFormat.money(p.amount)} for ${p.customerName ?? p.userName} via Stripe? This cannot be undone.',
       destructive: true,
       confirmLabel: 'Refund',
     );
@@ -75,7 +85,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Payment refunded via Stripe')),
       );
-      await _load();
+      await _search();
     } catch (e) {
       if (mounted) {
         await ErrorDialog.show(
@@ -93,6 +103,66 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _ftsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Search customer or startup',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) {
+                    setState(() => _page = 0);
+                    _search();
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 180,
+                child: DropdownButtonFormField<String?>(
+                  initialValue: _status,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All'),
+                    ),
+                    DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                    DropdownMenuItem(
+                      value: 'succeeded',
+                      child: Text('Succeeded'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'refunded',
+                      child: Text('Refunded'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    setState(() {
+                      _status = v;
+                      _page = 0;
+                    });
+                    _search();
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _page = 0);
+                  _search();
+                },
+                child: const Text('Search'),
+              ),
+            ],
+          ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           const SizedBox(height: 16),
           Expanded(
@@ -100,7 +170,6 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
               child: BaseTable(
                 title: 'Payment records (Stripe sandbox)',
                 columns: const [
-                  BaseTableColumn(label: 'ID', numeric: true),
                   BaseTableColumn(label: 'Amount', numeric: true),
                   BaseTableColumn(label: 'Currency'),
                   BaseTableColumn(label: 'Status'),
@@ -110,11 +179,10 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
                   BaseTableColumn(label: 'Date'),
                   BaseTableColumn(label: 'Actions'),
                 ],
-                rows: _pageItems
+                rows: _items
                     .map(
                       (p) => DataRow(
                         cells: [
-                          DataCell(Text('${p.id}')),
                           DataCell(Text(AppDateFormat.money(p.amount))),
                           DataCell(Text(p.currency.toUpperCase())),
                           DataCell(StatusChip(p.status)),
@@ -151,19 +219,17 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           BasePagination(
             currentPage: _page,
             pageSize: _pageSize,
-            totalCount: _all.length,
+            totalCount: _totalCount,
             onPageChanged: (p) {
-              setState(() {
-                _page = p;
-                _applyPage();
-              });
+              setState(() => _page = p);
+              _search();
             },
             onPageSizeChanged: (s) {
               setState(() {
                 _pageSize = s;
                 _page = 0;
-                _applyPage();
               });
+              _search();
             },
           ),
         ],

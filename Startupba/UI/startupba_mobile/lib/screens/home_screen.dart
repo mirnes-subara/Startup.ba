@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       if (post.isLiked) {
-        await provider.unlike(post.id, user.id);
+        await provider.unlike(post.id);
         if (!mounted) return;
         setState(() {
           _posts[index] = post.copyWith(
@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         });
       } else {
-        await provider.like(post.id, user.id);
+        await provider.like(post.id);
         if (!mounted) return;
         setState(() {
           _posts[index] = post.copyWith(

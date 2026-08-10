@@ -3,11 +3,12 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
     /// <summary>
-    /// Manages user notifications for rent and viewing appointment updates.
+    /// Manages user notifications for startup and platform activity.
     /// </summary>
     [ApiController]
     [Route("[controller]")]
@@ -27,8 +28,46 @@ namespace Startupba.WebAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResult<NotificationResponse>>> Get([FromQuery] NotificationSearchObject search)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
+
+            search ??= new NotificationSearchObject();
+            if (!User.IsInRole("Administrator"))
+            {
+                search.UserId = userId;
+            }
+
             var result = await _service.GetAsync(search);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Gets the count of unread notifications for the current user.
+        /// </summary>
+        [HttpGet("unread-count")]
+        public async Task<ActionResult<UnreadCountResponse>> GetUnreadCount()
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
+
+            var count = await _service.GetUnreadCountAsync(userId);
+            return Ok(new UnreadCountResponse { Count = count });
+        }
+
+        /// <summary>
+        /// Marks all notifications as read for the current user.
+        /// </summary>
+        [HttpPost("mark-all-read")]
+        public async Task<ActionResult> MarkAllAsRead()
+        {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
+
+            var count = await _service.MarkAllAsReadAsync(userId);
+            return Ok(new { success = true, markedCount = count });
         }
 
         /// <summary>
@@ -43,16 +82,6 @@ namespace Startupba.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Gets the count of unread notifications for a user.
-        /// </summary>
-        [HttpGet("unread-count/{userId}")]
-        public async Task<ActionResult<UnreadCountResponse>> GetUnreadCount(int userId)
-        {
-            var count = await _service.GetUnreadCountAsync(userId);
-            return Ok(new UnreadCountResponse { Count = count });
-        }
-
-        /// <summary>
         /// Marks a single notification as read.
         /// </summary>
         [HttpPost("{id}/mark-read")]
@@ -61,16 +90,6 @@ namespace Startupba.WebAPI.Controllers
             var result = await _service.MarkAsReadAsync(id);
             if (!result) return NotFound();
             return Ok(new { success = true });
-        }
-
-        /// <summary>
-        /// Marks all notifications as read for a user.
-        /// </summary>
-        [HttpPost("mark-all-read/{userId}")]
-        public async Task<ActionResult> MarkAllAsRead(int userId)
-        {
-            var count = await _service.MarkAllAsReadAsync(userId);
-            return Ok(new { success = true, markedCount = count });
         }
     }
 }

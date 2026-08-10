@@ -39,7 +39,7 @@ namespace Startupba.Services.Database
             // Design-time factory is only used locally (migrations), never in Docker
             // Use Trusted_Connection (Windows Auth) - no password needed
             var sqlServer = Environment.GetEnvironmentVariable("SQL__SERVER") ?? ".";
-            var sqlDatabase = Environment.GetEnvironmentVariable("SQL__DATABASE") ?? "StartupbaDb";
+            var sqlDatabase = Environment.GetEnvironmentVariable("SQL__DATABASE") ?? "220321";
 
             var connectionString = $"Server={sqlServer};Database={sqlDatabase};TrustServerCertificate=True;Trusted_Connection=True;";
 

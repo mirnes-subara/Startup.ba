@@ -11,9 +11,8 @@ class BlogPostProvider extends BaseProvider<BlogPost> {
     return BlogPost.fromJson(data);
   }
 
-  Future<bool> like(int blogPostId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}BlogPost/$blogPostId/like?userId=$userId";
+  Future<bool> like(int blogPostId) async {
+    var url = "${BaseProvider.baseUrl}BlogPost/$blogPostId/like";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.post(uri, headers: headers);
@@ -24,9 +23,8 @@ class BlogPostProvider extends BaseProvider<BlogPost> {
     return false;
   }
 
-  Future<bool> unlike(int blogPostId, int userId) async {
-    var url =
-        "${BaseProvider.baseUrl}BlogPost/$blogPostId/like?userId=$userId";
+  Future<bool> unlike(int blogPostId) async {
+    var url = "${BaseProvider.baseUrl}BlogPost/$blogPostId/like";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.delete(uri, headers: headers);

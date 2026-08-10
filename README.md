@@ -68,8 +68,10 @@ Startup.ba/
 
 ### Run API stack with Docker
 
-1. Configure [`Startupba/.env`](Startupba/.env) (SQL, RabbitMQ, SMTP, Stripe, JWT).
-2. From the `Startupba` folder:
+1. Copy [`Startupba/.env.example`](Startupba/.env.example) to `Startupba/.env` (and mobile `.env.example` → `.env` if needed).
+2. Configure SMTP / Stripe / JWT in `.env`. Database name is already set to index **`220321`**.
+3. Encrypted secrets for DL submission: [`Startupba/.env-tajne.zip`](Startupba/.env-tajne.zip) and [`Startupba/UI/startupba_mobile/.env-tajne.zip`](Startupba/UI/startupba_mobile/.env-tajne.zip) — password **`fit`**. Do not commit plain `.env` files or put them in the GitHub Release.
+4. From the `Startupba` folder:
 
 ```bash
 docker-compose up --build

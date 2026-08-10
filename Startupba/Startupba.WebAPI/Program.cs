@@ -85,7 +85,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     var sqlServer = Environment.GetEnvironmentVariable("SQL__SERVER") ?? ".";
-    var sqlDatabase = Environment.GetEnvironmentVariable("SQL__DATABASE") ?? "StartupbaDb";
+    var sqlDatabase = Environment.GetEnvironmentVariable("SQL__DATABASE") ?? "220321";
 
     connectionString = $"Server={sqlServer};Database={sqlDatabase};TrustServerCertificate=True;Trusted_Connection=True;";
 }

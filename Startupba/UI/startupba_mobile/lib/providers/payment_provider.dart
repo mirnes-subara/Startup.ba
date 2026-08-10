@@ -13,7 +13,6 @@ class PaymentProvider extends BaseProvider<Payment> {
 
   Future<PaymentIntentResponse> createPaymentIntent({
     required int startupId,
-    required int userId,
     required double amount,
     required String currency,
     String? customerName,
@@ -26,7 +25,6 @@ class PaymentProvider extends BaseProvider<Payment> {
 
     var body = jsonEncode({
       "startupId": startupId,
-      "userId": userId,
       "amount": amount,
       "currency": currency,
       "customerName": customerName,

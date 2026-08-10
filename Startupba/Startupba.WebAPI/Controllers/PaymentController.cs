@@ -4,6 +4,7 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -40,6 +41,12 @@ namespace Startupba.WebAPI.Controllers
         {
             try
             {
+                var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(claimId, out var userId))
+                    return Unauthorized();
+
+                request.UserId = userId;
+
                 var result = await _service.CreatePaymentIntentAsync(request);
                 return Ok(result);
             }

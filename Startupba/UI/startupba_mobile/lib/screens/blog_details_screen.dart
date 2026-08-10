@@ -67,9 +67,9 @@ class _BlogDetailsScreenState extends State<BlogDetailsScreen> {
     final provider = context.read<BlogPostProvider>();
     try {
       if (_isLiked) {
-        await provider.unlike(_post!.id, user.id);
+        await provider.unlike(_post!.id);
       } else {
-        await provider.like(_post!.id, user.id);
+        await provider.like(_post!.id);
       }
       if (!mounted) return;
       setState(() {

@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.IO;
 
 namespace Startupba.Services.Helpers
 {
@@ -19,14 +17,10 @@ namespace Startupba.Services.Helpers
             return bytes;
         }
 
-
-        public static string ConvertImageToBase64String(string folder, string imageName)
+        public static string? ConvertImageToBase64String(string folder, string imageName)
         {
             string currentDirectory = Directory.GetCurrentDirectory();
             string imagePath = Path.Combine(currentDirectory, folder, imageName);
-
-
-
 
             try
             {
@@ -35,26 +29,21 @@ namespace Startupba.Services.Helpers
                     byte[] imageBytes = File.ReadAllBytes(imagePath);
                     return Convert.ToBase64String(imageBytes);
                 }
-                else
-                {
-                    Console.WriteLine("Image file not found.");
-                    return null;
-                }
+
+                Debug.WriteLine("Image file not found.");
+                return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading image file: {ex.Message}");
+                Debug.WriteLine($"Error reading image file: {ex.Message}");
                 return null;
             }
         }
 
-
-
-        public static byte[] ConvertImageToByteArray(string folder, string imageName)
+        public static byte[]? ConvertImageToByteArray(string folder, string imageName)
         {
             string currentDirectory = Directory.GetCurrentDirectory();
             string imagePath = Path.Combine(currentDirectory, folder, imageName);
-
 
             try
             {
@@ -62,15 +51,13 @@ namespace Startupba.Services.Helpers
                 {
                     return File.ReadAllBytes(imagePath);
                 }
-                else
-                {
-                    Console.WriteLine($"Image file not found: {imageName}");
-                    return null;
-                }
+
+                Debug.WriteLine($"Image file not found: {imageName}");
+                return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading image file: {ex.Message}");
+                Debug.WriteLine($"Error reading image file: {ex.Message}");
                 return null;
             }
         }
@@ -94,11 +81,11 @@ namespace Startupba.Services.Helpers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error reading image file '{name}': {ex.Message}");
+                    Debug.WriteLine($"Error reading image file '{name}': {ex.Message}");
                 }
             }
 
-            Console.WriteLine($"None of the image files found: {string.Join(", ", imageNames)}. Seeding empty image.");
+            Debug.WriteLine($"None of the image files found: {string.Join(", ", imageNames)}. Seeding empty image.");
             return Array.Empty<byte>();
         }
     }

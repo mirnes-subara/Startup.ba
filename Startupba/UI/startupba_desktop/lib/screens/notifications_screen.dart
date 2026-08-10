@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -33,11 +35,19 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification> _notifications = [];
   bool _isLoading = true;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -72,10 +82,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _markAllRead() async {
-    final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
+    if (UserProvider.currentUser == null) return;
     try {
-      await context.read<NotificationProvider>().markAllAsRead(userId);
+      await context.read<NotificationProvider>().markAllAsRead();
       await _load();
     } catch (_) {}
   }

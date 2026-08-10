@@ -77,7 +77,7 @@ class _MasterScreenState extends State<MasterScreen>
     try {
       final provider =
           Provider.of<NotificationProvider>(context, listen: false);
-      final count = await provider.getUnreadCount(user.id);
+      final count = await provider.getUnreadCount();
       if (mounted && count != _unreadNotifications) {
         setState(() => _unreadNotifications = count);
       }

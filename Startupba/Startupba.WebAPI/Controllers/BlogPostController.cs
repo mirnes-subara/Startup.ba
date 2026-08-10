@@ -4,6 +4,7 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -13,24 +14,15 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
-        [AllowAnonymous]
-        public override async Task<PagedResult<BlogPostResponse>> Get([FromQuery] BlogPostSearchObject? search = null)
-        {
-            return await base.Get(search);
-        }
-
-        [AllowAnonymous]
-        public override async Task<BlogPostResponse?> GetById(int id)
-        {
-            return await base.GetById(id);
-        }
-
         /// <summary>
         /// Like a blog post. Returns false if already liked.
         /// </summary>
         [HttpPost("{id}/like")]
-        public async Task<ActionResult<bool>> Like(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> Like(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await ((IBlogPostService)_service).LikeAsync(id, userId));
         }
 
@@ -38,8 +30,11 @@ namespace Startupba.WebAPI.Controllers
         /// Remove a like from a blog post.
         /// </summary>
         [HttpDelete("{id}/like")]
-        public async Task<ActionResult<bool>> Unlike(int id, [FromQuery] int userId)
+        public async Task<ActionResult<bool>> Unlike(int id)
         {
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimId, out var userId))
+                return Unauthorized();
             return Ok(await ((IBlogPostService)_service).UnlikeAsync(id, userId));
         }
     }

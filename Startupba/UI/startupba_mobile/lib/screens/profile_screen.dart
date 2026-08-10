@@ -45,7 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       final activeUser = UserProvider.currentUser ?? currentUser;
       final analyticsProvider = context.read<UserAnalyticsProvider>();
-      final analytics = await analyticsProvider.getUserAnalytics(activeUser.id);
+      final analytics = await analyticsProvider.getUserAnalytics();
       if (mounted) {
         setState(() {
           _analytics = analytics ?? _createFallbackAnalytics(activeUser);

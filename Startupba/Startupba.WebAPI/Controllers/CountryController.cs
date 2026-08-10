@@ -13,18 +13,6 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
-        [AllowAnonymous]
-        public override async Task<PagedResult<CountryResponse>> Get([FromQuery] CountrySearchObject? search = null)
-        {
-            return await base.Get(search);
-        }
-
-        [AllowAnonymous]
-        public override async Task<CountryResponse?> GetById(int id)
-        {
-            return await base.GetById(id);
-        }
-
         [Authorize(Roles = "Administrator")]
         public override async Task<CountryResponse> Create([FromBody] CountryUpsertRequest request)
         {

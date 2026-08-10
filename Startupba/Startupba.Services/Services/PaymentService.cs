@@ -5,12 +5,14 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
 using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Stripe;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
@@ -23,12 +25,18 @@ namespace Startupba.Services.Services
     {
         private readonly StartupbaDbContext _context;
         private readonly IDonationService _donationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _stripeSecretKey;
 
-        public PaymentService(StartupbaDbContext context, IConfiguration configuration, IDonationService donationService)
+        public PaymentService(
+            StartupbaDbContext context,
+            IConfiguration configuration,
+            IDonationService donationService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _donationService = donationService;
+            _httpContextAccessor = httpContextAccessor;
             _stripeSecretKey = configuration["STRIPE:SECRET_KEY"]
                 ?? configuration["STRIPE__SECRET_KEY"]
                 ?? Environment.GetEnvironmentVariable("STRIPE__SECRET_KEY")
@@ -126,19 +134,29 @@ namespace Startupba.Services.Services
             var payment = await _context.Payments.FindAsync(paymentId);
             if (payment == null)
             {
-                throw new InvalidOperationException($"Payment with ID {paymentId} not found.");
+                throw new NotFoundException($"Payment with ID {paymentId} not found.");
             }
 
             // Verify the donation exists
             var donation = await _context.Donations.FindAsync(request.DonationId);
             if (donation == null)
             {
-                throw new InvalidOperationException($"Donation with ID {request.DonationId} not found.");
+                throw new NotFoundException($"Donation with ID {request.DonationId} not found.");
             }
 
             if (payment.DonationId.HasValue && payment.DonationId.Value != request.DonationId)
             {
-                throw new InvalidOperationException("Donation does not match this payment.");
+                throw new UserException("Donation does not match this payment.");
+            }
+
+            var claimId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
+            if (!isAdmin)
+            {
+                if (!int.TryParse(claimId, out var callerId) || donation.UserId != callerId)
+                {
+                    throw new UserException("You are not authorized to confirm this payment.");
+                }
             }
 
             // Verify the PaymentIntent actually succeeded on Stripe before completing

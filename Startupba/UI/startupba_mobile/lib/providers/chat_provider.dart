@@ -13,8 +13,8 @@ class ChatProvider extends BaseProvider<Chat> {
     return Chat.fromJson(data);
   }
 
-  Future<List<Conversation>> getConversations(int userId) async {
-    var url = "${BaseProvider.baseUrl}Chat/conversations/$userId";
+  Future<List<Conversation>> getConversations() async {
+    var url = "${BaseProvider.baseUrl}Chat/conversations";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.get(uri, headers: headers);
@@ -30,13 +30,12 @@ class ChatProvider extends BaseProvider<Chat> {
   }
 
   Future<SearchResult<Chat>> getConversationMessages(
-    int userId,
     int otherUserId, {
     int page = 0,
     int pageSize = 50,
   }) async {
     var url =
-        "${BaseProvider.baseUrl}Chat/conversation/$userId/$otherUserId?page=$page&pageSize=$pageSize";
+        "${BaseProvider.baseUrl}Chat/conversation/$otherUserId?page=$page&pageSize=$pageSize";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.get(uri, headers: headers);
@@ -54,9 +53,9 @@ class ChatProvider extends BaseProvider<Chat> {
     }
   }
 
-  Future<bool> markConversationAsRead(int senderId, int receiverId) async {
+  Future<bool> markConversationAsRead(int senderId) async {
     var url =
-        "${BaseProvider.baseUrl}Chat/mark-conversation-read?senderId=$senderId&receiverId=$receiverId";
+        "${BaseProvider.baseUrl}Chat/mark-conversation-read?senderId=$senderId";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.post(uri, headers: headers);
@@ -64,8 +63,8 @@ class ChatProvider extends BaseProvider<Chat> {
     return response.statusCode < 299;
   }
 
-  Future<int> getUnreadCount(int userId) async {
-    var url = "${BaseProvider.baseUrl}Chat/unread-count?userId=$userId";
+  Future<int> getUnreadCount() async {
+    var url = "${BaseProvider.baseUrl}Chat/unread-count";
     var uri = Uri.parse(url);
     var headers = createHeaders();
     var response = await http.get(uri, headers: headers);

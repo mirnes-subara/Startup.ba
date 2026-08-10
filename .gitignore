@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Secrets / local env (submit encrypted .env-tajne.zip instead)
+.env
+**/.env
+!.env.example
+!**/.env.example
+
 # User-specific files
 *.rsuser
 *.suo

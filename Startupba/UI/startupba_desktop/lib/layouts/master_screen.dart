@@ -10,12 +10,14 @@ import 'package:startupba_desktop/screens/city_list_screen.dart';
 import 'package:startupba_desktop/screens/country_list_screen.dart';
 import 'package:startupba_desktop/screens/dashboard_screen.dart';
 import 'package:startupba_desktop/screens/donation_list_screen.dart';
+import 'package:startupba_desktop/screens/gender_list_screen.dart';
 import 'package:startupba_desktop/screens/login_screen.dart';
 import 'package:startupba_desktop/screens/notifications_screen.dart';
 import 'package:startupba_desktop/screens/payment_list_screen.dart';
 import 'package:startupba_desktop/screens/report_list_screen.dart';
 import 'package:startupba_desktop/screens/settings_screen.dart';
 import 'package:startupba_desktop/screens/startup_list_screen.dart';
+import 'package:startupba_desktop/screens/startup_status_list_screen.dart';
 import 'package:startupba_desktop/screens/support_ticket_list_screen.dart';
 import 'package:startupba_desktop/screens/users_list_screen.dart';
 import 'package:startupba_desktop/theme/app_theme.dart';
@@ -151,6 +153,19 @@ class MasterScreen extends StatelessWidget {
                         onTap: () => _navigate(context, const CategoryListScreen()),
                       ),
                       _NavItem(
+                        icon: Icons.flag_circle_outlined,
+                        label: 'Statuses',
+                        selected: routeName == 'StartupStatusListScreen',
+                        onTap: () =>
+                            _navigate(context, const StartupStatusListScreen()),
+                      ),
+                      _NavItem(
+                        icon: Icons.wc_outlined,
+                        label: 'Genders',
+                        selected: routeName == 'GenderListScreen',
+                        onTap: () => _navigate(context, const GenderListScreen()),
+                      ),
+                      _NavItem(
                         icon: Icons.public_outlined,
                         label: 'Countries',
                         selected: routeName == 'CountryListScreen',
@@ -284,11 +299,10 @@ class _NotificationBellState extends State<_NotificationBell> {
   }
 
   Future<void> _refresh() async {
-    final userId = UserProvider.currentUser?.id;
-    if (userId == null) return;
+    if (UserProvider.currentUser == null) return;
     try {
       final count =
-          await context.read<NotificationProvider>().getUnreadCount(userId);
+          await context.read<NotificationProvider>().getUnreadCount();
       if (mounted) setState(() => _unread = count);
     } catch (_) {}
   }
