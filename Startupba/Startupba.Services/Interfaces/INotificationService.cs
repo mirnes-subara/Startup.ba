@@ -10,5 +10,6 @@ namespace Startupba.Services.Interfaces
         Task<bool> MarkAsReadAsync(int id);
         Task<int> MarkAllAsReadAsync(int userId);
         Task<int> GetUnreadCountAsync(int userId);
+        Task<int> DeleteByReferenceAsync(string referenceType, int referenceId);
     }
 }

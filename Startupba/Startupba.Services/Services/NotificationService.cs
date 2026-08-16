@@ -57,7 +57,7 @@ namespace Startupba.Services.Services
 
         public async Task<PagedResult<NotificationResponse>> GetAsync(NotificationSearchObject search)
         {
-            var query = _context.Notifications.AsQueryable();
+            var query = ExcludeInactiveAnnouncementNotifications(_context.Notifications.AsQueryable());
 
             if (search.UserId.HasValue)
             {
@@ -139,8 +139,37 @@ namespace Startupba.Services.Services
 
         public async Task<int> GetUnreadCountAsync(int userId)
         {
-            return await _context.Notifications
+            return await ExcludeInactiveAnnouncementNotifications(_context.Notifications.AsQueryable())
                 .CountAsync(n => n.UserId == userId && !n.IsRead);
+        }
+
+        public async Task<int> DeleteByReferenceAsync(string referenceType, int referenceId)
+        {
+            var toDelete = await _context.Notifications
+                .Where(n => n.ReferenceType == referenceType && n.ReferenceId == referenceId)
+                .ToListAsync();
+
+            if (toDelete.Count == 0)
+                return 0;
+
+            _context.Notifications.RemoveRange(toDelete);
+            await _context.SaveChangesAsync();
+            return toDelete.Count;
+        }
+
+        /// <summary>
+        /// Hide notifications for announcements that were deactivated by an admin.
+        /// </summary>
+        private IQueryable<Notification> ExcludeInactiveAnnouncementNotifications(IQueryable<Notification> query)
+        {
+            var inactiveAnnouncementIds = _context.Announcements
+                .Where(a => !a.IsActive)
+                .Select(a => a.Id);
+
+            return query.Where(n =>
+                n.ReferenceType != "Announcement"
+                || n.ReferenceId == null
+                || !inactiveAnnouncementIds.Contains(n.ReferenceId.Value));
         }
 
         private static NotificationResponse MapToResponse(Notification entity)

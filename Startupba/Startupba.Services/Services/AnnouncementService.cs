@@ -133,6 +133,38 @@ namespace Startupba.Services.Services
             return result;
         }
 
+        public override async Task<AnnouncementResponse?> UpdateAsync(int id, AnnouncementUpsertRequest request)
+        {
+            var existing = await _context.Announcements.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (existing == null)
+                return null;
+
+            var wasActive = existing.IsActive;
+            var result = await base.UpdateAsync(id, request);
+            if (result == null)
+                return null;
+
+            if (wasActive && !request.IsActive)
+            {
+                try
+                {
+                    await _notificationService.DeleteByReferenceAsync("Announcement", id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to remove notifications for deactivated announcement {AnnouncementId}", id);
+                }
+            }
+
+            return result;
+        }
+
+        protected override async Task BeforeDelete(Announcement entity)
+        {
+            await _notificationService.DeleteByReferenceAsync("Announcement", entity.Id);
+        }
+
         protected override void MapUpdateToEntity(Announcement entity, AnnouncementUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);

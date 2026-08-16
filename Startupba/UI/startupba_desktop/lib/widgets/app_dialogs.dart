@@ -67,39 +67,81 @@ class InputDialog {
     int maxLines = 1,
     String confirmLabel = 'Save',
   }) async {
-    final controller = TextEditingController(text: initialValue);
-    var submitted = false;
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            maxLines: maxLines,
-            decoration: InputDecoration(hintText: hint),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: submitted ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: submitted
-                  ? null
-                  : () {
-                      setLocal(() => submitted = true);
-                      Navigator.pop(ctx, controller.text.trim());
-                    },
-              child: Text(confirmLabel),
-            ),
-          ],
-        ),
+      builder: (ctx) => _InputDialog(
+        title: title,
+        hint: hint,
+        initialValue: initialValue,
+        maxLines: maxLines,
+        confirmLabel: confirmLabel,
       ),
     );
-    controller.dispose();
     if (result == null || result.isEmpty) return null;
     return result;
+  }
+}
+
+class _InputDialog extends StatefulWidget {
+  final String title;
+  final String? hint;
+  final String? initialValue;
+  final int maxLines;
+  final String confirmLabel;
+
+  const _InputDialog({
+    required this.title,
+    this.hint,
+    this.initialValue,
+    this.maxLines = 1,
+    required this.confirmLabel,
+  });
+
+  @override
+  State<_InputDialog> createState() => _InputDialogState();
+}
+
+class _InputDialogState extends State<_InputDialog> {
+  late final TextEditingController _controller;
+  bool _submitted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        maxLines: widget.maxLines,
+        decoration: InputDecoration(hintText: widget.hint),
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: _submitted ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submitted
+              ? null
+              : () {
+                  setState(() => _submitted = true);
+                  Navigator.pop(context, _controller.text.trim());
+                },
+          child: Text(widget.confirmLabel),
+        ),
+      ],
+    );
   }
 }
