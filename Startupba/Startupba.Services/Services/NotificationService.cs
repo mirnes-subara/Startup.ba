@@ -3,6 +3,7 @@ using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
 using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace Startupba.Services.Services
     public class NotificationService : INotificationService
     {
         private readonly StartupbaDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private static readonly string[] TypeNames =
         {
@@ -28,9 +30,10 @@ namespace Startupba.Services.Services
             "Verification Requested" // 9
         };
 
-        public NotificationService(StartupbaDbContext context)
+        public NotificationService(StartupbaDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<NotificationResponse> CreateNotificationAsync(
@@ -57,6 +60,14 @@ namespace Startupba.Services.Services
 
         public async Task<PagedResult<NotificationResponse>> GetAsync(NotificationSearchObject search)
         {
+            search ??= new NotificationSearchObject();
+
+            // Non-admins can only list their own notifications; ignore client UserId override.
+            if (!_httpContextAccessor.IsAdministrator())
+            {
+                search.UserId = _httpContextAccessor.RequireUserId();
+            }
+
             var query = ExcludeInactiveAnnouncementNotifications(_context.Notifications.AsQueryable());
 
             if (search.UserId.HasValue)
@@ -109,6 +120,12 @@ namespace Startupba.Services.Services
         {
             var entity = await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id);
             if (entity == null) return null;
+
+            // Only the recipient may read a notification by id.
+            var currentUserId = _httpContextAccessor.RequireUserId();
+            if (entity.UserId != currentUserId)
+                return null;
+
             return MapToResponse(entity);
         }
 
@@ -116,6 +133,10 @@ namespace Startupba.Services.Services
         {
             var entity = await _context.Notifications.FindAsync(id);
             if (entity == null) return false;
+
+            var currentUserId = _httpContextAccessor.RequireUserId();
+            if (entity.UserId != currentUserId)
+                return false;
 
             entity.IsRead = true;
             await _context.SaveChangesAsync();

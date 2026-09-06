@@ -14,8 +14,7 @@ class NotificationProvider extends BaseProvider<AppNotification> {
   Future<int> getUnreadCount() async {
     var url = "${BaseProvider.baseUrl}Notification/unread-count";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -28,8 +27,7 @@ class NotificationProvider extends BaseProvider<AppNotification> {
     var url =
         "${BaseProvider.baseUrl}Notification/$notificationId/mark-read";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     return response.statusCode < 299;
   }
@@ -37,8 +35,7 @@ class NotificationProvider extends BaseProvider<AppNotification> {
   Future<int> markAllAsRead() async {
     var url = "${BaseProvider.baseUrl}Notification/mark-all-read";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);

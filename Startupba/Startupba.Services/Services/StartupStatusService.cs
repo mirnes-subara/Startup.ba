@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -36,7 +37,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.StartupStatuses.AnyAsync(s => s.Name == request.Name))
             {
-                throw new InvalidOperationException("A startup status with this name already exists.");
+                throw new UserException("A startup status with this name already exists.");
             }
         }
 
@@ -44,7 +45,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.StartupStatuses.AnyAsync(s => s.Name == request.Name && s.Id != entity.Id))
             {
-                throw new InvalidOperationException("A startup status with this name already exists.");
+                throw new UserException("A startup status with this name already exists.");
             }
         }
 
@@ -52,7 +53,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Startups.AnyAsync(s => s.StatusId == entity.Id))
             {
-                throw new InvalidOperationException("Cannot delete a status that is used by startups.");
+                throw new UserException("Cannot delete a status that is used by startups.");
             }
         }
     }

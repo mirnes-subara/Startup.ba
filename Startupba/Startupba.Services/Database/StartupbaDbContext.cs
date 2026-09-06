@@ -17,10 +17,12 @@ namespace Startupba.Services.Database
         public DbSet<Category> Categories { get; set; }
         public DbSet<StartupStatus> StartupStatuses { get; set; }
         public DbSet<Startup> Startups { get; set; }
+        public DbSet<StartupStatusHistory> StartupStatusHistories { get; set; }
         public DbSet<StartupImage> StartupImages { get; set; }
         public DbSet<Donation> Donations { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<StartupLike> StartupLikes { get; set; }
+        public DbSet<StartupView> StartupViews { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<BlogPost> BlogPosts { get; set; }
         public DbSet<Comment> Comments { get; set; }
@@ -146,6 +148,51 @@ namespace Startupba.Services.Database
                 .HasForeignKey(s => s.StatusId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<Startup>()
+                .HasOne(s => s.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(s => s.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Startup>()
+                .HasOne(s => s.RejectedBy)
+                .WithMany()
+                .HasForeignKey(s => s.RejectedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Startup>()
+                .HasOne(s => s.PausedBy)
+                .WithMany()
+                .HasForeignKey(s => s.PausedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StartupStatusHistory>()
+                .HasOne(h => h.Startup)
+                .WithMany(s => s.StatusHistory)
+                .HasForeignKey(h => h.StartupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StartupStatusHistory>()
+                .HasOne(h => h.FromStatus)
+                .WithMany()
+                .HasForeignKey(h => h.FromStatusId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StartupStatusHistory>()
+                .HasOne(h => h.ToStatus)
+                .WithMany()
+                .HasForeignKey(h => h.ToStatusId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StartupStatusHistory>()
+                .HasOne(h => h.Actor)
+                .WithMany()
+                .HasForeignKey(h => h.ActorUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StartupStatusHistory>()
+                .HasIndex(h => h.StartupId);
+
             // Configure StartupImage entity relationship
             modelBuilder.Entity<StartupImage>()
                 .HasOne(si => si.Startup)
@@ -188,6 +235,22 @@ namespace Startupba.Services.Database
 
             modelBuilder.Entity<StartupLike>()
                 .HasIndex(sl => new { sl.StartupId, sl.UserId })
+                .IsUnique();
+
+            modelBuilder.Entity<StartupView>()
+                .HasOne(sv => sv.Startup)
+                .WithMany(s => s.StartupViews)
+                .HasForeignKey(sv => sv.StartupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StartupView>()
+                .HasOne(sv => sv.User)
+                .WithMany()
+                .HasForeignKey(sv => sv.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StartupView>()
+                .HasIndex(sv => new { sv.StartupId, sv.UserId })
                 .IsUnique();
 
             // Configure Favorite join entity (many-to-many)

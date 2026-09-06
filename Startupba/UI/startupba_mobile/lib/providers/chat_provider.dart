@@ -16,8 +16,7 @@ class ChatProvider extends BaseProvider<Chat> {
   Future<List<Conversation>> getConversations() async {
     var url = "${BaseProvider.baseUrl}Chat/conversations";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -37,8 +36,7 @@ class ChatProvider extends BaseProvider<Chat> {
     var url =
         "${BaseProvider.baseUrl}Chat/conversation/$otherUserId?page=$page&pageSize=$pageSize";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -57,8 +55,7 @@ class ChatProvider extends BaseProvider<Chat> {
     var url =
         "${BaseProvider.baseUrl}Chat/mark-conversation-read?senderId=$senderId";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     return response.statusCode < 299;
   }
@@ -66,8 +63,7 @@ class ChatProvider extends BaseProvider<Chat> {
   Future<int> getUnreadCount() async {
     var url = "${BaseProvider.baseUrl}Chat/unread-count";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) as int;

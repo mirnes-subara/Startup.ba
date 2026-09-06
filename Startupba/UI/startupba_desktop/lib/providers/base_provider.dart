@@ -19,22 +19,16 @@ abstract class BaseProvider<T> with ChangeNotifier {
     );
   }
 
-  Future<Response> _authorized(Future<Response> Function() request) async {
-    var response = await request();
-    if (response.statusCode == 401) {
-      final refreshed = await AuthProvider.tryRefresh();
-      if (refreshed) {
-        response = await request();
-      }
-    }
-    return response;
+  @protected
+  Future<Response> authorized(Future<Response> Function() request) {
+    return AuthProvider.authorized(request);
   }
 
   Future<T?> getById(int id) async {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
 
-    var response = await _authorized(() => http.get(uri, headers: createHeaders()));
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
     if (isValidResponse(response)) {
       if (response.body.isEmpty) return null;
       var data = jsonDecode(response.body);
@@ -53,7 +47,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     var uri = Uri.parse(url);
-    var response = await _authorized(() => http.get(uri, headers: createHeaders()));
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -70,7 +64,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     var url = "$baseUrl$endpoint";
     var uri = Uri.parse(url);
     var jsonRequest = jsonEncode(request);
-    var response = await _authorized(
+    var response = await authorized(
       () => http.post(uri, headers: createHeaders(), body: jsonRequest),
     );
 
@@ -86,7 +80,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
     var jsonRequest = jsonEncode(request);
-    var response = await _authorized(
+    var response = await authorized(
       () => http.put(uri, headers: createHeaders(), body: jsonRequest),
     );
 
@@ -101,7 +95,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
   Future<bool> delete(int id) async {
     var url = "$baseUrl$endpoint/$id";
     var uri = Uri.parse(url);
-    var response = await _authorized(() => http.delete(uri, headers: createHeaders()));
+    var response = await authorized(() => http.delete(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -119,17 +113,48 @@ abstract class BaseProvider<T> with ChangeNotifier {
     if (response.statusCode < 299) {
       return true;
     } else if (response.statusCode == 401) {
+      AuthProvider.expireSession();
       throw Exception("Please check your credentials and try again.");
     } else {
-      String message = "Something went wrong, please try again later!";
+      String message = "Something went wrong (${response.statusCode})";
       try {
-        final body = jsonDecode(response.body);
-        if (body is Map && body['message'] != null) {
-          message = body['message'].toString();
-        } else if (body is Map && body['title'] != null) {
-          message = body['title'].toString();
+        if (response.body.isNotEmpty) {
+          final body = jsonDecode(response.body);
+          if (body is Map) {
+            if (body['errors'] != null && body['errors'] is Map) {
+              final Map<String, dynamic> errorsMap =
+                  Map<String, dynamic>.from(body['errors']);
+              final List<String> errorMessages = [];
+              errorsMap.forEach((key, value) {
+                if (value is List && value.isNotEmpty) {
+                  errorMessages.add(value.map((e) => e.toString()).join(", "));
+                } else if (value is String) {
+                  errorMessages.add(value);
+                }
+              });
+              if (errorMessages.isNotEmpty) {
+                message = errorMessages.join("\n");
+              }
+            } else if (body['error'] != null) {
+              message = body['error'].toString();
+            } else if (body['userText'] != null) {
+              message = body['userText'].toString();
+            } else if (body['message'] != null) {
+              message = body['message'].toString();
+            } else if (body['title'] != null) {
+              message = body['title'].toString();
+            } else if (body['detail'] != null) {
+              message = body['detail'].toString();
+            }
+          } else if (body is String && body.trim().isNotEmpty) {
+            message = body;
+          }
         }
-      } catch (_) {}
+      } catch (_) {
+        if (response.body.trim().isNotEmpty) {
+          message = response.body;
+        }
+      }
       throw Exception(message);
     }
   }

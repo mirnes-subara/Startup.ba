@@ -13,7 +13,9 @@ class PaymentProvider extends BaseProvider<Payment> {
   /// Full refund via Stripe (admin).
   Future<Payment> refund(int id) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/refund";
-    var response = await http.post(Uri.parse(url), headers: createHeaders());
+    var response = await authorized(
+      () => http.post(Uri.parse(url), headers: createHeaders()),
+    );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
     }
@@ -27,7 +29,9 @@ class PaymentProvider extends BaseProvider<Payment> {
     if (filter != null) {
       url = "$url?${getQueryString(filter)}";
     }
-    var response = await http.get(Uri.parse(url), headers: createHeaders());
+    var response = await authorized(
+      () => http.get(Uri.parse(url), headers: createHeaders()),
+    );
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
       final result = SearchResult<Payment>();

@@ -26,7 +26,7 @@ namespace Startupba.Services.Services
         public virtual async Task<T> CreateAsync(TInsert request)
         {
             var entity = new TEntity();
-            MapInsertToEntity(entity, request);
+            await MapInsertToEntityAsync(entity, request);
             _context.Set<TEntity>().Add(entity);
 
             await BeforeInsert(entity, request);
@@ -44,6 +44,15 @@ namespace Startupba.Services.Services
         protected virtual TEntity MapInsertToEntity(TEntity entity, TInsert request)
         {
             return _mapper.Map(request, entity);
+        }
+
+        /// <summary>
+        /// Async insert mapping. Override when mapping needs EF (or other I/O).
+        /// </summary>
+        protected virtual Task MapInsertToEntityAsync(TEntity entity, TInsert request)
+        {
+            MapInsertToEntity(entity, request);
+            return Task.CompletedTask;
         }
 
         public virtual async Task<T?> UpdateAsync(int id, TUpdate request)

@@ -12,6 +12,7 @@ class Announcement {
   final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? imageData;
 
   Announcement({
     this.id = 0,
@@ -22,6 +23,7 @@ class Announcement {
     this.isActive = true,
     required this.createdAt,
     this.updatedAt,
+    this.imageData,
   });
 
   factory Announcement.fromJson(Map<String, dynamic> json) =>

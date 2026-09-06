@@ -173,6 +173,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                   children: [
                     BaseImage(
                       base64Data: _startup.coverImage,
+                      imageUrl: _startup.coverImageUrl,
                       width: 120,
                       height: 120,
                     ),
@@ -183,9 +184,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                         children: [
                           Row(
                             children: [
-                              if (_startup.logoImage != null && _startup.logoImage!.isNotEmpty) ...[
+                              if (_startup.hasLogo) ...[
                                 BaseImage(
                                   base64Data: _startup.logoImage,
+                                  imageUrl: _startup.logoImageUrl,
                                   width: 44,
                                   height: 44,
                                   borderRadius: 22,

@@ -42,6 +42,8 @@ class Startup {
   final bool isFavorited;
   final String? coverImage;
   final String? logoImage;
+  final String? coverImageUrl;
+  final String? logoImageUrl;
   final String? recommendationReason;
 
   Startup({
@@ -73,8 +75,18 @@ class Startup {
     this.isFavorited = false,
     this.coverImage,
     this.logoImage,
+    this.coverImageUrl,
+    this.logoImageUrl,
     this.recommendationReason,
   });
+
+  bool get hasCover =>
+      (coverImageUrl != null && coverImageUrl!.isNotEmpty) ||
+      (coverImage != null && coverImage!.isNotEmpty);
+
+  bool get hasLogo =>
+      (logoImageUrl != null && logoImageUrl!.isNotEmpty) ||
+      (logoImage != null && logoImage!.isNotEmpty);
 
   Startup copyWith({
     int? likeCount,
@@ -112,6 +124,8 @@ class Startup {
       isFavorited: isFavorited ?? this.isFavorited,
       coverImage: coverImage,
       logoImage: logoImage,
+      coverImageUrl: coverImageUrl,
+      logoImageUrl: logoImageUrl,
       recommendationReason:
           recommendationReason ?? this.recommendationReason,
     );

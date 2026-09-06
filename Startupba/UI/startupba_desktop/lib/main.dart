@@ -17,10 +17,15 @@ import 'package:startupba_desktop/providers/startup_provider.dart';
 import 'package:startupba_desktop/providers/startup_status_provider.dart';
 import 'package:startupba_desktop/providers/support_ticket_provider.dart';
 import 'package:startupba_desktop/providers/user_provider.dart';
+import 'package:startupba_desktop/providers/auth_provider.dart';
 import 'package:startupba_desktop/screens/login_screen.dart';
 import 'package:startupba_desktop/theme/app_theme.dart';
 
 void main() {
+  AuthProvider.loginScreenBuilder = (_) => const LoginScreen();
+  AuthProvider.onSessionCleared = () {
+    UserProvider.currentUser = null;
+  };
   runApp(const StartupBaAdminApp());
 }
 
@@ -50,6 +55,7 @@ class StartupBaAdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CityProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: AuthProvider.navigatorKey,
         title: 'Startup.ba Admin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

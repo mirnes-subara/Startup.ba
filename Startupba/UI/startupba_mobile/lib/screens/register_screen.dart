@@ -8,6 +8,7 @@ import 'package:startupba_mobile/model/gender.dart';
 import 'package:startupba_mobile/providers/gender_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/utils/app_validators.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/country_city_picker.dart';
 
@@ -184,6 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -253,7 +255,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   controller: _firstNameCtrl,
                                   label: 'First Name',
                                   icon: Icons.person_outline,
-                                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                  validator: (v) =>
+                                      AppValidators.requiredField(v, 'First name'),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -262,7 +265,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   controller: _lastNameCtrl,
                                   label: 'Last Name',
                                   icon: Icons.person_outline,
-                                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                                  validator: (v) =>
+                                      AppValidators.requiredField(v, 'Last name'),
                                 ),
                               ),
                             ],
@@ -272,7 +276,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _usernameCtrl,
                             label: 'Username',
                             icon: Icons.alternate_email,
-                            validator: (v) => v == null || v.length < 3 ? 'Min 3 characters' : null,
+                            validator: (v) =>
+                                AppValidators.minLength(v, 3, 'Username'),
                           ),
                           const SizedBox(height: 16),
                           _buildField(
@@ -280,11 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             label: 'Email',
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Required';
-                              if (!v.contains('@')) return 'Invalid email';
-                              return null;
-                            },
+                            validator: AppValidators.email,
                           ),
                           const SizedBox(height: 16),
                           _buildField(
@@ -292,6 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             label: 'Phone (optional)',
                             icon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
+                            validator: AppValidators.phone,
                           ),
                           const SizedBox(height: 16),
                           CountryCityPicker(
@@ -315,7 +317,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             items: _genders.map((g) => DropdownMenuItem(value: g, child: Text(g.name))).toList(),
                             onChanged: (v) => setState(() => _selectedGender = v),
-                            validator: (v) => v == null ? 'Required' : null,
+                            validator: (v) =>
+                                AppValidators.requiredChoice(v, 'gender'),
                           ),
                           const SizedBox(height: 16),
                           _buildField(
@@ -327,7 +330,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               icon: Icon(_obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey[600]),
                               onPressed: () => setState(() => _obscurePass = !_obscurePass),
                             ),
-                            validator: (v) => v == null || v.length < 4 ? 'Min 4 characters' : null,
+                            validator: (v) =>
+                                AppValidators.minLength(v, 4, 'Password'),
                           ),
                           const SizedBox(height: 16),
                           _buildField(
@@ -339,10 +343,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               icon: Icon(_obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey[600]),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
-                            validator: (v) {
-                              if (v != _passwordCtrl.text) return 'Passwords don\'t match';
-                              return null;
-                            },
+                            validator: (v) => AppValidators.passwordConfirm(
+                              v,
+                              _passwordCtrl.text,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           Container(

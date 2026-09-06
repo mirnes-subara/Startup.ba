@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -31,7 +32,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Genders.AnyAsync(g => g.Name == request.Name))
             {
-                throw new InvalidOperationException("A gender with this name already exists.");
+                throw new UserException("A gender with this name already exists.");
             }
         }
 
@@ -39,7 +40,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Genders.AnyAsync(g => g.Name == request.Name && g.Id != entity.Id))
             {
-                throw new InvalidOperationException("A gender with this name already exists.");
+                throw new UserException("A gender with this name already exists.");
             }
         }
     }

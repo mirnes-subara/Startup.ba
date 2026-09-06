@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -116,7 +117,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Cities.AnyAsync(c => c.Name == request.Name))
             {
-                throw new InvalidOperationException("A city with this name already exists.");
+                throw new UserException("A city with this name already exists.");
             }
         }
 
@@ -124,7 +125,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Cities.AnyAsync(c => c.Name == request.Name && c.Id != entity.Id))
             {
-                throw new InvalidOperationException("A city with this name already exists.");
+                throw new UserException("A city with this name already exists.");
             }
         }
 
@@ -133,7 +134,7 @@ namespace Startupba.Services.Services
             if (await _context.Users.AnyAsync(u => u.CityId == entity.Id) ||
                 await _context.Startups.AnyAsync(s => s.CityId == entity.Id))
             {
-                throw new InvalidOperationException("Cannot delete a city that is in use. Deactivate it instead.");
+                throw new UserException("Cannot delete a city that is in use. Deactivate it instead.");
             }
         }
     }

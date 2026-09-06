@@ -1,9 +1,12 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -16,11 +19,18 @@ namespace Startupba.Services.Services
     {
         private readonly INotificationService _notificationService;
         private readonly ILogger<CommentService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CommentService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<CommentService> logger) : base(context, mapper)
+        public CommentService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<CommentService> logger,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private IQueryable<Comment> BaseQuery => _context.Comments
@@ -99,19 +109,41 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(Comment entity, CommentUpsertRequest request)
         {
+            request.UserId = _httpContextAccessor.RequireUserId();
+            entity.UserId = request.UserId;
+
             if (!await _context.BlogPosts.AnyAsync(bp => bp.Id == request.BlogPostId))
             {
-                throw new InvalidOperationException("Blog post does not exist.");
+                throw new NotFoundException("Blog post does not exist.");
             }
+        }
 
-            if (!await _context.Users.AnyAsync(u => u.Id == request.UserId))
+        protected override async Task BeforeUpdate(Comment entity, CommentUpsertRequest request)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.UserId, "You can only edit your own comments.");
+            request.UserId = entity.UserId;
+
+            if (!await _context.BlogPosts.AnyAsync(bp => bp.Id == request.BlogPostId))
             {
-                throw new InvalidOperationException("User does not exist.");
+                throw new NotFoundException("Blog post does not exist.");
             }
+        }
+
+        protected override void MapUpdateToEntity(Comment entity, CommentUpsertRequest request)
+        {
+            base.MapUpdateToEntity(entity, request);
+            entity.UserId = request.UserId;
+        }
+
+        protected override Task BeforeDelete(Comment entity)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.UserId, "You can only delete your own comments.");
+            return Task.CompletedTask;
         }
 
         public override async Task<CommentResponse> CreateAsync(CommentUpsertRequest request)
         {
+            request.UserId = _httpContextAccessor.RequireUserId();
             var result = await base.CreateAsync(request);
 
             // Notify the blog post author about the new comment (unless they commented themselves)

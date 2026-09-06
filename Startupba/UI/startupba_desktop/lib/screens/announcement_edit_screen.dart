@@ -7,6 +7,7 @@ import 'package:startupba_desktop/model/announcement.dart';
 import 'package:startupba_desktop/providers/announcement_provider.dart';
 import 'package:startupba_desktop/providers/user_provider.dart';
 import 'package:startupba_desktop/widgets/app_dialogs.dart';
+import 'package:startupba_desktop/widgets/base_image.dart';
 
 class AnnouncementEditScreen extends StatefulWidget {
   final Announcement? announcement;
@@ -20,8 +21,15 @@ class AnnouncementEditScreen extends StatefulWidget {
 class _AnnouncementEditScreenState extends State<AnnouncementEditScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   bool _saving = false;
+  String? _imageBase64;
 
   bool get _isEdit => widget.announcement != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageBase64 = widget.announcement?.imageData;
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
@@ -29,25 +37,23 @@ class _AnnouncementEditScreenState extends State<AnnouncementEditScreen> {
     setState(() => _saving = true);
     try {
       final provider = context.read<AnnouncementProvider>();
+      final body = <String, dynamic>{
+        'title': values['title'],
+        'content': values['content'],
+        'isActive': values['isActive'] ?? true,
+        'imageData': _imageBase64,
+      };
       if (_isEdit) {
         final a = widget.announcement!;
-        await provider.update(a.id, {
-          'title': values['title'],
-          'content': values['content'],
-          'createdByUserId': a.createdByUserId,
-          'isActive': values['isActive'] ?? true,
-        });
+        body['createdByUserId'] = a.createdByUserId;
+        await provider.update(a.id, body);
       } else {
         final userId = UserProvider.currentUser?.id;
         if (userId == null) {
           throw Exception('Not logged in');
         }
-        await provider.insert({
-          'title': values['title'],
-          'content': values['content'],
-          'createdByUserId': userId,
-          'isActive': values['isActive'] ?? true,
-        });
+        body['createdByUserId'] = userId;
+        await provider.insert(body);
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -96,6 +102,14 @@ class _AnnouncementEditScreenState extends State<AnnouncementEditScreen> {
                     name: 'isActive',
                     initialValue: a?.isActive ?? true,
                     title: const Text('Active'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Image (optional)'),
+                  const SizedBox(height: 8),
+                  ImagePickerBox(
+                    initialBase64: _imageBase64,
+                    onChanged: (v) => _imageBase64 = v,
+                    size: 160,
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(

@@ -54,6 +54,7 @@ class StartupCard extends StatelessWidget {
                   children: [
                     BaseImage(
                       base64Data: startup.coverImage,
+                      imageUrl: startup.coverImageUrl,
                       width: double.infinity,
                       height: 160,
                       borderRadius: 0,
@@ -94,7 +95,7 @@ class StartupCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      if (startup.logoImage != null && startup.logoImage!.isNotEmpty) ...[
+                      if (startup.hasLogo) ...[
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -109,6 +110,7 @@ class StartupCard extends StatelessWidget {
                           ),
                           child: BaseImage(
                             base64Data: startup.logoImage,
+                            imageUrl: startup.logoImageUrl,
                             width: 32,
                             height: 32,
                             borderRadius: 16,
@@ -221,6 +223,7 @@ class StartupCard extends StatelessWidget {
                   children: [
                     BaseImage(
                       base64Data: startup.coverImage,
+                      imageUrl: startup.coverImageUrl,
                       width: 220,
                       height: 120,
                       borderRadius: 0,

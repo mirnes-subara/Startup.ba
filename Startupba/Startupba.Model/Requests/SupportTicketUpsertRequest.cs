@@ -4,7 +4,9 @@ namespace Startupba.Model.Requests
 {
     public class SupportTicketUpsertRequest
     {
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int UserId { get; set; }
 
         [Required]

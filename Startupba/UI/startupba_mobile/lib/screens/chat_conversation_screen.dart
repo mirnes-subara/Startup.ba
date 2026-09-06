@@ -72,7 +72,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     try {
       final provider = context.read<ChatProvider>();
       await provider.insert({
-        'senderId': _currentUserId,
         'receiverId': widget.otherUserId,
         'message': _messageCtrl.text.trim(),
       });

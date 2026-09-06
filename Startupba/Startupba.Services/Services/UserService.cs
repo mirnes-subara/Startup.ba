@@ -117,12 +117,12 @@ namespace Startupba.Services.Services
             // Check if user with same email or username already exists
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
             }
 
             if (await _context.Users.AnyAsync(u => u.Username == request.Username))
             {
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
             }
 
             var user = new User
@@ -147,7 +147,7 @@ namespace Startupba.Services.Services
             }
 
             // Only administrators may assign roles from the request; others always get User (id 2).
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
+            var isAdmin = _httpContextAccessor.IsAdministrator();
             var roleIdsToAssign = isAdmin && request.RoleIds != null && request.RoleIds.Any()
                 ? request.RoleIds
                 : new List<int> { 2 };
@@ -193,13 +193,13 @@ namespace Startupba.Services.Services
             // Check if email is being changed and if it already exists
             if (request.Email != user.Email && await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                throw new InvalidOperationException("User with this email already exists.");
+                throw new UserException("User with this email already exists.");
             }
 
             // Check if username is being changed and if it already exists
             if (request.Username != user.Username && await _context.Users.AnyAsync(u => u.Username == request.Username))
             {
-                throw new InvalidOperationException("User with this username already exists.");
+                throw new UserException("User with this username already exists.");
             }
 
             user.FirstName = request.FirstName;
@@ -209,24 +209,28 @@ namespace Startupba.Services.Services
             user.PhoneNumber = request.PhoneNumber;
             user.GenderId = request.GenderId;
             user.CityId = request.CityId;
-            user.IsActive = request.IsActive;
             user.Picture = request.Picture;
 
-            // Only administrators may change roles; ignore RoleIds for everyone else.
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
-            if (isAdmin && request.RoleIds != null && request.RoleIds.Any())
+            // Only administrators may change roles or activate/deactivate accounts.
+            var isAdmin = _httpContextAccessor.IsAdministrator();
+            if (isAdmin)
             {
-                _context.UserRoles.RemoveRange(user.UserRoles);
+                user.IsActive = request.IsActive;
 
-                foreach (var roleId in request.RoleIds)
+                if (request.RoleIds != null && request.RoleIds.Any())
                 {
-                    var userRole = new UserRole
+                    _context.UserRoles.RemoveRange(user.UserRoles);
+
+                    foreach (var roleId in request.RoleIds)
                     {
-                        UserId = user.Id,
-                        RoleId = roleId,
-                        DateAssigned = DateTime.UtcNow
-                    };
-                    _context.UserRoles.Add(userRole);
+                        var userRole = new UserRole
+                        {
+                            UserId = user.Id,
+                            RoleId = roleId,
+                            DateAssigned = DateTime.UtcNow
+                        };
+                        _context.UserRoles.Add(userRole);
+                    }
                 }
             }
 
@@ -299,6 +303,31 @@ namespace Startupba.Services.Services
             return response;
         }
 
+        public UserResponse ToPublicProfile(UserResponse user)
+        {
+            return new UserResponse
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Username = user.Username,
+                Picture = user.Picture,
+                IsVerified = user.IsVerified,
+                CityId = user.CityId,
+                CityName = user.CityName,
+                // Sensitive / administrative fields withheld
+                Email = string.Empty,
+                PhoneNumber = null,
+                IsActive = true,
+                IsVerificationRequested = false,
+                LastLoginAt = null,
+                GenderId = 0,
+                GenderName = string.Empty,
+                Roles = new List<RoleResponse>(),
+                CreatedAt = user.CreatedAt,
+            };
+        }
+
         private async Task<UserResponse> GetUserResponseWithRolesAsync(int userId)
         {
             var user = await _context.Users
@@ -309,7 +338,7 @@ namespace Startupba.Services.Services
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
-                throw new InvalidOperationException("User not found.");
+                throw new NotFoundException("User not found.");
 
             return MapToResponse(user);
         }
@@ -355,7 +384,7 @@ namespace Startupba.Services.Services
 
             if (user.IsVerified)
             {
-                throw new InvalidOperationException("Profile is already verified.");
+                throw new UserException("Profile is already verified.");
             }
 
             // Idempotent: already requested — do not spam admins

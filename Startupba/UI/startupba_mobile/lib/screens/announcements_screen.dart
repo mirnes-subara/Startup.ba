@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:startupba_mobile/model/announcement.dart';
 import 'package:startupba_mobile/providers/announcement_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/empty_state.dart';
 
 class AnnouncementsScreen extends StatefulWidget {
@@ -79,6 +80,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 Expanded(child: Text(a.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
                               ],
                             ),
+                            if (a.imageData != null && a.imageData!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              BaseImage(
+                                base64Data: a.imageData,
+                                width: double.infinity,
+                                height: 180,
+                                borderRadius: 12,
+                                placeholderIcon: Icons.campaign_outlined,
+                              ),
+                            ],
                             const SizedBox(height: 12),
                             Text(a.content, style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.5)),
                             const SizedBox(height: 12),

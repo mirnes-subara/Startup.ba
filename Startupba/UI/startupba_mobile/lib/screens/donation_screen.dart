@@ -22,6 +22,7 @@ class _DonationScreenState extends State<DonationScreen> {
   bool _isProcessing = false;
   int _selectedPreset = 1; // index of preset amounts
   final List<double> _presets = [5, 10, 25, 50, 100];
+  final NumberFormat _money = NumberFormat.currency(symbol: '€', decimalDigits: 2);
 
   @override
   void dispose() {
@@ -30,8 +31,44 @@ class _DonationScreenState extends State<DonationScreen> {
     super.dispose();
   }
 
+  Future<bool> _confirmDonation() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirm donation'),
+        content: Text(
+          'Donate ${_money.format(_amount)} to ${widget.startup.name}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _donate() async {
-    if (_amount <= 0) return;
+    if (_amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter an amount greater than 0'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await _confirmDonation();
+    if (!confirmed || !mounted) return;
+
     setState(() => _isProcessing = true);
 
     try {
@@ -70,7 +107,7 @@ class _DonationScreenState extends State<DonationScreen> {
       await stripe.Stripe.instance.presentPaymentSheet();
 
       // Confirm payment and complete the pending donation
-      await paymentProvider.confirmPayment(intent.paymentId, intent.donationId);
+      await paymentProvider.confirmPayment(intent.paymentId);
 
       if (mounted) {
         _showSuccessDialog();
@@ -110,7 +147,7 @@ class _DonationScreenState extends State<DonationScreen> {
             const Text('Thank You!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Your donation of €${_amount.toStringAsFixed(0)} to ${widget.startup.name} was successful!',
+              'Your donation of ${_money.format(_amount)} to ${widget.startup.name} was successful!',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[600]),
             ),
@@ -134,8 +171,6 @@ class _DonationScreenState extends State<DonationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(symbol: '€', decimalDigits: 0);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Donate')),
@@ -161,7 +196,7 @@ class _DonationScreenState extends State<DonationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.startup.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                        Text('${widget.startup.fundingPercent.toStringAsFixed(0)}% funded · ${currencyFormat.format(widget.startup.amountRaised)} raised',
+                        Text('${widget.startup.fundingPercent.toStringAsFixed(0)}% funded · ${_money.format(widget.startup.amountRaised)} raised',
                           style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                       ],
                     ),
@@ -187,7 +222,7 @@ class _DonationScreenState extends State<DonationScreen> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
                     ),
-                    child: Text('€${_presets[i].toStringAsFixed(0)}',
+                    child: Text(_money.format(_presets[i]),
                       style: TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w700,
                         color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -236,7 +271,7 @@ class _DonationScreenState extends State<DonationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  Text('€${_amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                  Text(_money.format(_amount), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary)),
                 ],
               ),
             ),

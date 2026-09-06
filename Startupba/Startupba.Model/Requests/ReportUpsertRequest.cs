@@ -4,7 +4,9 @@ namespace Startupba.Model.Requests
 {
     public class ReportUpsertRequest
     {
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int ReporterId { get; set; }
 
         /// <summary>

@@ -40,7 +40,7 @@ class UserProvider extends BaseProvider<User> {
   Future<User> requestVerification(int id) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/request-verification";
     var uri = Uri.parse(url);
-    var response = await http.put(uri, headers: createHeaders());
+    var response = await authorized(() => http.put(uri, headers: createHeaders()));
     if (isValidResponse(response)) {
       final user = fromJson(jsonDecode(response.body));
       if (currentUser?.id == id) {
@@ -59,14 +59,16 @@ class UserProvider extends BaseProvider<User> {
   }) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$userId/change-password";
     var uri = Uri.parse(url);
-    var response = await http.put(
-      uri,
-      headers: createHeaders(),
-      body: jsonEncode({
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-        'newPasswordConfirmation': newPasswordConfirmation,
-      }),
+    var response = await authorized(
+      () => http.put(
+        uri,
+        headers: createHeaders(),
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+          'newPasswordConfirmation': newPasswordConfirmation,
+        }),
+      ),
     );
     if (isValidResponse(response)) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;

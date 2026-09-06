@@ -8,6 +8,7 @@ import 'package:startupba_mobile/model/gender.dart';
 import 'package:startupba_mobile/providers/gender_provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/utils/app_validators.dart';
 import 'package:startupba_mobile/widgets/base_image.dart';
 import 'package:startupba_mobile/widgets/country_city_picker.dart';
 
@@ -107,12 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCity == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a city')),
-      );
-      return;
-    }
+    if (_selectedCity == null) return;
     setState(() => _isLoading = true);
     try {
       final provider = context.read<UserProvider>();
@@ -168,6 +164,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               padding: const EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   children: [
                     GestureDetector(
@@ -220,7 +217,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             'First Name',
                             Icons.person_outline,
                             validator: (v) =>
-                                v == null || v.isEmpty ? 'Required' : null,
+                                AppValidators.requiredField(v, 'First name'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -230,7 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             'Last Name',
                             Icons.person_outline,
                             validator: (v) =>
-                                v == null || v.isEmpty ? 'Required' : null,
+                                AppValidators.requiredField(v, 'Last name'),
                           ),
                         ),
                       ],
@@ -241,6 +238,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       'Email',
                       Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      validator: AppValidators.email,
                     ),
                     const SizedBox(height: 16),
                     _field(
@@ -248,6 +246,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       'Phone',
                       Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                      validator: AppValidators.phone,
                     ),
                     const SizedBox(height: 16),
                     CountryCityPicker(
@@ -279,6 +278,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           )
                           .toList(),
                       onChanged: (v) => setState(() => _selectedGender = v),
+                      validator: (v) =>
+                          AppValidators.requiredChoice(v, 'gender'),
                     ),
                     const SizedBox(height: 32),
                     SizedBox(

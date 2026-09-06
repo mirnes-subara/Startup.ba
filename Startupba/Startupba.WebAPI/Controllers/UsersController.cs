@@ -3,10 +3,10 @@ using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Startupba.Services.Interfaces;
 using Startupba.Services.Services;
+using Startupba.WebAPI.Helpers;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -24,12 +24,20 @@ namespace Startupba.WebAPI.Controllers
             _jwtTokenService = jwtTokenService;
         }
 
+        /// <summary>
+        /// Full user list — administrators only.
+        /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<PagedResult<UserResponse>>> Get([FromQuery] UserSearchObject? search = null)
         {
             return await _userService.GetAsync(search ?? new UserSearchObject());
         }
 
+        /// <summary>
+        /// Own profile or admin: full UserResponse.
+        /// Other users: public profile fields only (name, picture, city, verified).
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponse>> GetById(int id)
         {
@@ -38,27 +46,37 @@ namespace Startupba.WebAPI.Controllers
             if (user == null)
                 return NotFound();
 
-            return user;
+            if (this.IsAdministrator() || this.GetUserId() == id)
+                return user;
+
+            return _userService.ToPublicProfile(user);
         }
 
         [HttpPost]
         [AllowAnonymous]
-
         public async Task<ActionResult<UserResponse>> Create(UserUpsertRequest request)
         {
             var createdUser = await _userService.CreateAsync(request);
             return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser);
         }
 
+        /// <summary>
+        /// Self-update (route id must match JWT) or administrator update.
+        /// Only admins may change IsActive / roles.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<UserResponse>> Update(int id, UserUpsertRequest request)
         {
+            if (!this.IsAdministrator() && this.RequireUserId() != id)
+                return Forbid();
+
+            var wasActive = (await _userService.GetByIdAsync(id))?.IsActive ?? true;
             var updatedUser = await _userService.UpdateAsync(id, request);
 
             if (updatedUser == null)
                 return NotFound();
 
-            if (!updatedUser.IsActive)
+            if (wasActive && !updatedUser.IsActive)
                 await _jwtTokenService.RevokeAllForUserAsync(id);
 
             return updatedUser;
@@ -70,11 +88,8 @@ namespace Startupba.WebAPI.Controllers
         [HttpPut("{id}/change-password")]
         public async Task<ActionResult<LoginResponse>> ChangePassword(int id, [FromBody] ChangePasswordRequest request)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var callerId) || callerId != id)
-            {
+            if (this.RequireUserId() != id)
                 return Forbid();
-            }
 
             await _userService.ChangePasswordAsync(id, request);
             await _jwtTokenService.RevokeAllForUserAsync(id);
@@ -88,6 +103,7 @@ namespace Startupba.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult> Delete(int id)
         {
             var deleted = await _userService.DeleteAsync(id);
@@ -95,6 +111,7 @@ namespace Startupba.WebAPI.Controllers
             if (!deleted)
                 return NotFound();
 
+            await _jwtTokenService.RevokeAllForUserAsync(id);
             return NoContent();
         }
 
@@ -119,12 +136,8 @@ namespace Startupba.WebAPI.Controllers
         [HttpPut("{id}/request-verification")]
         public async Task<ActionResult<UserResponse>> RequestVerification(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = User.IsInRole("Administrator");
-            if (!isAdmin && (!int.TryParse(claimId, out var callerId) || callerId != id))
-            {
+            if (!this.IsAdministrator() && this.RequireUserId() != id)
                 return Forbid();
-            }
 
             var user = await _userService.RequestVerificationAsync(id);
 
@@ -168,11 +181,7 @@ namespace Startupba.WebAPI.Controllers
                 return NoContent();
             }
 
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var callerId))
-                return Unauthorized();
-
-            await _jwtTokenService.RevokeAllForUserAsync(callerId);
+            await _jwtTokenService.RevokeAllForUserAsync(this.RequireUserId());
             return NoContent();
         }
     }

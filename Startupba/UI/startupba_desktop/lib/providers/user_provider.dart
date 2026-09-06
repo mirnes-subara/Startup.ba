@@ -49,7 +49,7 @@ class UserProvider extends BaseProvider<User> {
   Future<User> verify(int id) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/verify";
     var uri = Uri.parse(url);
-    var response = await http.put(uri, headers: createHeaders());
+    var response = await authorized(() => http.put(uri, headers: createHeaders()));
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
     }

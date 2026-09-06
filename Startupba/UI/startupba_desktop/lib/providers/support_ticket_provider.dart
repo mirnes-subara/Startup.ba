@@ -11,10 +11,12 @@ class SupportTicketProvider extends BaseProvider<SupportTicket> {
 
   Future<SupportTicket> answer(int id, String adminResponse) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/answer";
-    var response = await http.put(
-      Uri.parse(url),
-      headers: createHeaders(),
-      body: jsonEncode({"adminResponse": adminResponse}),
+    var response = await authorized(
+      () => http.put(
+        Uri.parse(url),
+        headers: createHeaders(),
+        body: jsonEncode({"adminResponse": adminResponse}),
+      ),
     );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
@@ -24,7 +26,9 @@ class SupportTicketProvider extends BaseProvider<SupportTicket> {
 
   Future<SupportTicket> close(int id) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/close";
-    var response = await http.put(Uri.parse(url), headers: createHeaders());
+    var response = await authorized(
+      () => http.put(Uri.parse(url), headers: createHeaders()),
+    );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
     }

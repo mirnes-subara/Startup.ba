@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:startupba_desktop/providers/base_provider.dart';
 
@@ -8,6 +9,14 @@ class AuthProvider {
   static String? token;
   static String? refreshToken;
 
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  static WidgetBuilder? loginScreenBuilder;
+  static VoidCallback? onSessionCleared;
+
+  static Future<bool>? _refreshInFlight;
+  static bool _redirectingToLogin = false;
+
   static void clear() {
     username = null;
     token = null;
@@ -15,6 +24,7 @@ class AuthProvider {
   }
 
   static void applyLogin(Map<String, dynamic> data, {String? loginUsername}) {
+    _redirectingToLogin = false;
     token = data['accessToken'] as String?;
     refreshToken = data['refreshToken'] as String?;
     if (loginUsername != null) {
@@ -22,8 +32,41 @@ class AuthProvider {
     }
   }
 
-  /// Attempts a single refresh. Returns true if new tokens were stored.
+  /// Authenticated request: on 401, refresh once (shared across parallel calls),
+  /// retry, and if refresh fails clear the session and go to login.
+  static Future<http.Response> authorized(
+    Future<http.Response> Function() request,
+  ) async {
+    var response = await request();
+    if (response.statusCode != 401) return response;
+
+    final refreshed = await tryRefresh();
+    if (refreshed) {
+      response = await request();
+      if (response.statusCode != 401) return response;
+    }
+
+    expireSession();
+    throw Exception("Please check your credentials and try again.");
+  }
+
+  /// Attempts a single refresh. Parallel callers share the same in-flight request.
   static Future<bool> tryRefresh() async {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+
+    final future = _tryRefreshOnce();
+    _refreshInFlight = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_refreshInFlight, future)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  static Future<bool> _tryRefreshOnce() async {
     final currentRefresh = refreshToken;
     final baseUrl = BaseProvider.baseUrl;
     if (currentRefresh == null ||
@@ -46,6 +89,27 @@ class AuthProvider {
       }
     } catch (_) {}
     return false;
+  }
+
+  static void expireSession() {
+    if (_redirectingToLogin) return;
+    final hadSession = (token != null && token!.isNotEmpty) ||
+        (refreshToken != null && refreshToken!.isNotEmpty);
+    clear();
+    if (!hadSession) return;
+
+    _redirectingToLogin = true;
+    onSessionCleared?.call();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = navigatorKey.currentState;
+      final builder = loginScreenBuilder;
+      if (nav == null || builder == null) return;
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: builder),
+        (_) => false,
+      );
+    });
   }
 
   static Future<void> logoutRemote() async {

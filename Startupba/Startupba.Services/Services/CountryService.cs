@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -41,7 +42,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Countries.AnyAsync(c => c.Name == request.Name))
             {
-                throw new InvalidOperationException("A country with this name already exists.");
+                throw new UserException("A country with this name already exists.");
             }
         }
 
@@ -49,7 +50,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Countries.AnyAsync(c => c.Name == request.Name && c.Id != entity.Id))
             {
-                throw new InvalidOperationException("A country with this name already exists.");
+                throw new UserException("A country with this name already exists.");
             }
         }
 
@@ -57,7 +58,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Cities.AnyAsync(c => c.CountryId == entity.Id))
             {
-                throw new InvalidOperationException("Cannot delete a country that has cities. Deactivate it instead.");
+                throw new UserException("Cannot delete a country that has cities. Deactivate it instead.");
             }
         }
     }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/providers/report_provider.dart';
-import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
 
 class ReportScreen extends StatefulWidget {
@@ -64,15 +63,15 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _isLoading = true);
     try {
       final provider = context.read<ReportProvider>();
-      await provider.insert({
-        'reporterId': UserProvider.currentUser?.id,
+      final body = <String, dynamic>{
         'targetType': _targetType,
-        'startupId': widget.startupId,
-        'blogPostId': widget.blogPostId,
-        'reportedUserId': widget.reportedUserId,
         'reason': _selectedReason,
         'description': _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      });
+      };
+      if (widget.startupId != null) body['startupId'] = widget.startupId;
+      if (widget.blogPostId != null) body['blogPostId'] = widget.blogPostId;
+      if (widget.reportedUserId != null) body['reportedUserId'] = widget.reportedUserId;
+      await provider.insert(body);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted. Thank you!'), backgroundColor: AppColors.success));
         Navigator.pop(context);

@@ -1,7 +1,9 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
@@ -95,8 +97,18 @@ namespace Startupba.Services.Services
         {
             if (!await _context.Users.AnyAsync(u => u.Id == request.CreatedByUserId))
             {
-                throw new InvalidOperationException("Creator user does not exist.");
+                throw new NotFoundException("Creator user does not exist.");
             }
+
+            if (request.ImageData != null && request.ImageData.Length > 0)
+                ImageMagicBytes.EnsureJpegOrPng(request.ImageData);
+        }
+
+        protected override Task BeforeUpdate(Announcement entity, AnnouncementUpsertRequest request)
+        {
+            if (request.ImageData != null && request.ImageData.Length > 0)
+                ImageMagicBytes.EnsureJpegOrPng(request.ImageData);
+            return Task.CompletedTask;
         }
 
         public override async Task<AnnouncementResponse> CreateAsync(AnnouncementUpsertRequest request)
@@ -167,8 +179,12 @@ namespace Startupba.Services.Services
 
         protected override void MapUpdateToEntity(Announcement entity, AnnouncementUpsertRequest request)
         {
+            var previousImage = entity.ImageData;
             base.MapUpdateToEntity(entity, request);
             entity.UpdatedAt = DateTime.UtcNow;
+            // Null/empty means "leave as-is" so omitting the field does not wipe the banner.
+            if (request.ImageData == null || request.ImageData.Length == 0)
+                entity.ImageData = previousImage;
         }
     }
 }

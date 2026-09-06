@@ -39,6 +39,11 @@ void main() async {
   stripe.Stripe.urlScheme = 'flutterstripe';
   await stripe.Stripe.instance.applySettings();
 
+  AuthProvider.loginScreenBuilder = (_) => const LoginScreen();
+  AuthProvider.onSessionCleared = () {
+    UserProvider.currentUser = null;
+  };
+
   runApp(
     MultiProvider(
       providers: [
@@ -108,6 +113,7 @@ class StartupBaMobileApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: AuthProvider.navigatorKey,
       title: 'Startup.ba',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,

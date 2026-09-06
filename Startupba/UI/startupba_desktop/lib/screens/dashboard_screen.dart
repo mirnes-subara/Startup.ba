@@ -1,6 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_desktop/layouts/master_screen.dart';
 import 'package:startupba_desktop/model/analytics.dart';
@@ -46,16 +45,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _downloadPdf() async {
+  Future<void> _saveReport({required bool category}) async {
     if (_data == null) return;
-    final bytes = await buildAdminAnalyticsPdf(_data!);
-    await Printing.layoutPdf(onLayout: (_) async => bytes);
+    try {
+      final bytes = category
+          ? await buildCategoryAnalyticsPdf(_data!)
+          : await buildAdminAnalyticsPdf(_data!);
+      final saved = await savePdfToFile(
+        bytes,
+        category
+            ? 'Startupba_Category_Report.pdf'
+            : 'Startupba_Admin_Analytics.pdf',
+      );
+      if (saved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF saved')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        await ErrorDialog.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
   }
 
-  Future<void> _downloadCategoryPdf() async {
+  Future<void> _printReport({required bool category}) async {
     if (_data == null) return;
-    final bytes = await buildCategoryAnalyticsPdf(_data!);
-    await Printing.layoutPdf(onLayout: (_) async => bytes);
+    try {
+      final bytes = category
+          ? await buildCategoryAnalyticsPdf(_data!)
+          : await buildAdminAnalyticsPdf(_data!);
+      await printPdf(
+        bytes,
+        category
+            ? 'Startup.ba Category Report'
+            : 'Startup.ba Admin Analytics',
+      );
+    } catch (e) {
+      if (mounted) {
+        await ErrorDialog.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    }
   }
 
   @override
@@ -77,14 +113,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           runSpacing: 8,
                           children: [
                             OutlinedButton.icon(
-                              onPressed: _downloadPdf,
-                              icon: const Icon(Icons.picture_as_pdf_outlined),
+                              onPressed: () => _saveReport(category: false),
+                              icon: const Icon(Icons.download_outlined),
                               label: const Text('Download PDF report'),
                             ),
                             OutlinedButton.icon(
-                              onPressed: _downloadCategoryPdf,
-                              icon: const Icon(Icons.picture_as_pdf_outlined),
+                              onPressed: () => _printReport(category: false),
+                              icon: const Icon(Icons.print_outlined),
+                              label: const Text('Print PDF report'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _saveReport(category: true),
+                              icon: const Icon(Icons.download_outlined),
                               label: const Text('Download category report'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _printReport(category: true),
+                              icon: const Icon(Icons.print_outlined),
+                              label: const Text('Print category report'),
                             ),
                           ],
                         ),

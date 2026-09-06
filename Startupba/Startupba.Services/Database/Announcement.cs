@@ -26,6 +26,11 @@ namespace Startupba.Services.Database
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Optional JPEG/PNG banner shown on mobile and desktop.
+        /// </summary>
+        public byte[]? ImageData { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }

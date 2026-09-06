@@ -20,6 +20,11 @@ namespace Startupba.Services.Interfaces
         Task<bool> AddFavoriteAsync(int startupId, int userId);
         Task<bool> RemoveFavoriteAsync(int startupId, int userId);
 
+        /// <summary>
+        /// Records a detail-page view (deduped per user, throttled).
+        /// </summary>
+        Task<bool> RecordViewAsync(int startupId, int userId);
+
         // Content-based recommendations
         Task<List<StartupResponse>> GetRecommendedStartupsAsync(int userId, int count);
 

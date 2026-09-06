@@ -4,7 +4,9 @@ namespace Startupba.Model.Requests
 {
     public class BlogPostUpsertRequest
     {
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int AuthorId { get; set; }
 
         public int? StartupId { get; set; }

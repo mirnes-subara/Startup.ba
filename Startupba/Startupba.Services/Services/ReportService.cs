@@ -1,9 +1,12 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -16,14 +19,21 @@ namespace Startupba.Services.Services
     {
         private readonly INotificationService _notificationService;
         private readonly ILogger<ReportService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private static readonly string[] TargetTypeNames = { "Startup", "BlogPost", "User" };
         private static readonly string[] StatusNames = { "Pending", "Reviewed", "Dismissed", "ActionTaken" };
 
-        public ReportService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<ReportService> logger) : base(context, mapper)
+        public ReportService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<ReportService> logger,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private IQueryable<Report> BaseQuery => _context.Reports
@@ -55,6 +65,12 @@ namespace Startupba.Services.Services
 
         protected override IQueryable<Report> ApplyFilter(IQueryable<Report> query, ReportSearchObject search)
         {
+            if (!_httpContextAccessor.IsAdministrator())
+            {
+                var currentUserId = _httpContextAccessor.RequireUserId();
+                search.ReporterId = currentUserId;
+            }
+
             if (search.ReporterId.HasValue)
             {
                 query = query.Where(r => r.ReporterId == search.ReporterId.Value);
@@ -102,6 +118,12 @@ namespace Startupba.Services.Services
             if (entity == null)
                 return null;
 
+            if (!_httpContextAccessor.IsAdministrator()
+                && entity.ReporterId != _httpContextAccessor.GetUserId())
+            {
+                return null;
+            }
+
             return MapToResponse(entity);
         }
 
@@ -135,43 +157,93 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(Report entity, ReportUpsertRequest request)
         {
-            if (!await _context.Users.AnyAsync(u => u.Id == request.ReporterId))
-            {
-                throw new InvalidOperationException("Reporter does not exist.");
-            }
+            request.ReporterId = _httpContextAccessor.RequireUserId();
+            entity.ReporterId = request.ReporterId;
 
-            // Exactly one target must be set, matching the target type
-            switch (request.TargetType)
-            {
-                case 0: // Startup
-                    if (!request.StartupId.HasValue)
-                        throw new InvalidOperationException("StartupId is required when reporting a startup.");
-                    if (!await _context.Startups.AnyAsync(s => s.Id == request.StartupId.Value))
-                        throw new InvalidOperationException("Reported startup does not exist.");
-                    break;
-                case 1: // BlogPost
-                    if (!request.BlogPostId.HasValue)
-                        throw new InvalidOperationException("BlogPostId is required when reporting a blog post.");
-                    if (!await _context.BlogPosts.AnyAsync(bp => bp.Id == request.BlogPostId.Value))
-                        throw new InvalidOperationException("Reported blog post does not exist.");
-                    break;
-                case 2: // User
-                    if (!request.ReportedUserId.HasValue)
-                        throw new InvalidOperationException("ReportedUserId is required when reporting a user.");
-                    if (!await _context.Users.AnyAsync(u => u.Id == request.ReportedUserId.Value))
-                        throw new InvalidOperationException("Reported user does not exist.");
-                    break;
-                default:
-                    throw new InvalidOperationException("Invalid target type. Use 0=Startup, 1=BlogPost, 2=User.");
-            }
+            await ValidateExactlyOneTargetAsync(request);
+            ApplyTargetForeignKeys(entity, request);
         }
 
         protected override Report MapInsertToEntity(Report entity, ReportUpsertRequest request)
         {
             base.MapInsertToEntity(entity, request);
+            entity.ReporterId = request.ReporterId;
+            ApplyTargetForeignKeys(entity, request);
             entity.Status = 0; // Pending
+            entity.AdminNote = null;
+            entity.ResolvedAt = null;
             entity.CreatedAt = DateTime.UtcNow;
             return entity;
+        }
+
+        protected override async Task BeforeUpdate(Report entity, ReportUpsertRequest request)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.ReporterId, "You can only edit your own reports.");
+
+            if (entity.Status != 0)
+                throw new UserException("Resolved reports cannot be edited.");
+
+            // Target, reporter, status, and admin note are locked; only reason/description may change.
+            request.ReporterId = entity.ReporterId;
+            request.TargetType = entity.TargetType;
+            request.StartupId = entity.StartupId;
+            request.BlogPostId = entity.BlogPostId;
+            request.ReportedUserId = entity.ReportedUserId;
+
+            await ValidateExactlyOneTargetAsync(request);
+        }
+
+        protected override void MapUpdateToEntity(Report entity, ReportUpsertRequest request)
+        {
+            entity.Reason = request.Reason;
+            entity.Description = request.Description;
+        }
+
+        protected override Task BeforeDelete(Report entity)
+        {
+            throw new UserException("Reports cannot be deleted.");
+        }
+
+        /// <summary>
+        /// Per TargetType, the matching FK must be set and the other two must be null.
+        /// </summary>
+        private async Task ValidateExactlyOneTargetAsync(ReportUpsertRequest request)
+        {
+            var startupSet = request.StartupId.HasValue;
+            var blogSet = request.BlogPostId.HasValue;
+            var userSet = request.ReportedUserId.HasValue;
+
+            switch (request.TargetType)
+            {
+                case 0: // Startup
+                    if (!startupSet || blogSet || userSet)
+                        throw new UserException("A startup report must set StartupId and leave BlogPostId and ReportedUserId empty.");
+                    if (!await _context.Startups.AnyAsync(s => s.Id == request.StartupId!.Value))
+                        throw new UserException("Reported startup does not exist.");
+                    break;
+                case 1: // BlogPost
+                    if (!blogSet || startupSet || userSet)
+                        throw new UserException("A blog post report must set BlogPostId and leave StartupId and ReportedUserId empty.");
+                    if (!await _context.BlogPosts.AnyAsync(bp => bp.Id == request.BlogPostId!.Value))
+                        throw new UserException("Reported blog post does not exist.");
+                    break;
+                case 2: // User
+                    if (!userSet || startupSet || blogSet)
+                        throw new UserException("A user report must set ReportedUserId and leave StartupId and BlogPostId empty.");
+                    if (!await _context.Users.AnyAsync(u => u.Id == request.ReportedUserId!.Value))
+                        throw new UserException("Reported user does not exist.");
+                    break;
+                default:
+                    throw new UserException("Invalid target type. Use 0=Startup, 1=BlogPost, 2=User.");
+            }
+        }
+
+        private static void ApplyTargetForeignKeys(Report entity, ReportUpsertRequest request)
+        {
+            entity.TargetType = request.TargetType;
+            entity.StartupId = request.TargetType == 0 ? request.StartupId : null;
+            entity.BlogPostId = request.TargetType == 1 ? request.BlogPostId : null;
+            entity.ReportedUserId = request.TargetType == 2 ? request.ReportedUserId : null;
         }
 
         public async Task<ReportResponse?> ResolveAsync(int id, ReportResolveRequest request)
@@ -182,7 +254,7 @@ namespace Startupba.Services.Services
 
             if (entity.Status != 0)
             {
-                throw new InvalidOperationException("Only pending reports can be resolved.");
+                throw new UserException("Only pending reports can be resolved.");
             }
 
             entity.Status = request.Status;

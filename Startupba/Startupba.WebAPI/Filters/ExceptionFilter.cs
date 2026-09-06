@@ -10,35 +10,56 @@ namespace Startupba.WebAPI.Filters
     public class ExceptionFilter : ExceptionFilterAttribute
     {
         private readonly ILogger<ExceptionFilter> _logger;
-        public ExceptionFilter(ILogger<ExceptionFilter> logger){
-                _logger = logger;
+        public ExceptionFilter(ILogger<ExceptionFilter> logger)
+        {
+            _logger = logger;
         }
+
         public override void OnException(ExceptionContext context)
         {
-            _logger.LogError(context.Exception, context.Exception.Message);
+            int statusCode;
+            string message;
+            string errorKey;
 
             if (context.Exception is NotFoundException)
             {
-                context.ModelState.AddModelError("userError", context.Exception.Message);
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                statusCode = (int)HttpStatusCode.NotFound;
+                message = context.Exception.Message;
+                errorKey = "userError";
+                _logger.LogWarning(context.Exception, "{Message}", message);
             }
             else if (context.Exception is BusinessException)
             {
-                context.ModelState.AddModelError("userError", context.Exception.Message);
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                statusCode = (int)HttpStatusCode.BadRequest;
+                message = context.Exception.Message;
+                errorKey = "userError";
+                _logger.LogWarning(context.Exception, "{Message}", message);
             }
             else
             {
-                context.ModelState.AddModelError("ERROR", "Server side error, please check logs");
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                message = "Server side error, please check logs";
+                errorKey = "ERROR";
+                _logger.LogError(context.Exception, context.Exception.Message);
             }
 
-            var list = context.ModelState.Where(x => x.Value.Errors.Count > 0)
-                .ToDictionary(x => x.Key, y => y.Value.Errors.Select(z => z.ErrorMessage));
+            context.ModelState.AddModelError(errorKey, message);
 
-            context.Result = new JsonResult(new {
-                errors = list
-            });
+            var list = context.ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
+                .ToDictionary(x => x.Key, y => y.Value!.Errors.Select(z => z.ErrorMessage));
+
+            // One envelope: Flutter reads errors, message, userText, and error.
+            context.Result = new JsonResult(new
+            {
+                errors = list,
+                message,
+                userText = message,
+                error = message
+            })
+            {
+                StatusCode = statusCode
+            };
+            context.ExceptionHandled = true;
         }
     }
 }

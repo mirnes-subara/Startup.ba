@@ -2,9 +2,8 @@ using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
+using Startupba.WebAPI.Helpers;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -14,16 +13,20 @@ namespace Startupba.WebAPI.Controllers
         {
         }
 
+        [HttpPost]
+        public override async Task<BlogPostResponse> Create([FromBody] BlogPostUpsertRequest request)
+        {
+            request.AuthorId = this.RequireUserId();
+            return await _crudService.CreateAsync(request);
+        }
+
         /// <summary>
         /// Like a blog post. Returns false if already liked.
         /// </summary>
         [HttpPost("{id}/like")]
         public async Task<ActionResult<bool>> Like(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await ((IBlogPostService)_service).LikeAsync(id, userId));
+            return Ok(await ((IBlogPostService)_service).LikeAsync(id, this.RequireUserId()));
         }
 
         /// <summary>
@@ -32,10 +35,7 @@ namespace Startupba.WebAPI.Controllers
         [HttpDelete("{id}/like")]
         public async Task<ActionResult<bool>> Unlike(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await ((IBlogPostService)_service).UnlikeAsync(id, userId));
+            return Ok(await ((IBlogPostService)_service).UnlikeAsync(id, this.RequireUserId()));
         }
     }
 }

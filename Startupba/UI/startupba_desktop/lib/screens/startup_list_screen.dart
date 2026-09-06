@@ -211,6 +211,7 @@ class _StartupListScreenState extends State<StartupListScreen> {
                         cells: [
                           DataCell(BaseImage(
                             base64Data: s.logoImage ?? s.coverImage,
+                            imageUrl: s.logoImageUrl ?? s.coverImageUrl,
                             width: 40,
                             height: 40,
                             borderRadius: 20,

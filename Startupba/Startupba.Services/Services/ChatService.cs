@@ -1,9 +1,12 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,14 +17,26 @@ namespace Startupba.Services.Services
 {
     public class ChatService : BaseCRUDService<ChatResponse, ChatSearchObject, Chat, ChatUpsertRequest, ChatUpsertRequest>, IChatService
     {
-        public ChatService(StartupbaDbContext context, IMapper mapper) : base(context, mapper)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public ChatService(StartupbaDbContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor)
+            : base(context, mapper)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
+
+        private int CurrentUserId => _httpContextAccessor.RequireUserId();
+
+        private static bool IsParticipant(Chat chat, int userId)
+            => chat.SenderId == userId || chat.ReceiverId == userId;
 
         protected override IQueryable<Chat> ApplyFilter(IQueryable<Chat> query, ChatSearchObject search)
         {
             query = query.Include(c => c.Sender)
                         .Include(c => c.Receiver);
+
+            var currentUserId = CurrentUserId;
+            query = query.Where(c => c.SenderId == currentUserId || c.ReceiverId == currentUserId);
 
             if (search.SenderId.HasValue)
             {
@@ -53,16 +68,39 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(Chat entity, ChatUpsertRequest request)
         {
+            entity.SenderId = _httpContextAccessor.RequireUserId();
+            request.SenderId = entity.SenderId;
             entity.CreatedAt = DateTime.UtcNow;
             entity.IsRead = false;
-            await Task.CompletedTask;
+
+            if (entity.ReceiverId == entity.SenderId)
+            {
+                throw new UserException("You cannot send a message to yourself.");
+            }
+
+            if (!await _context.Users.AnyAsync(u => u.Id == entity.ReceiverId))
+            {
+                throw new NotFoundException("Receiver does not exist.");
+            }
         }
 
- 
+        public override Task<ChatResponse?> UpdateAsync(int id, ChatUpsertRequest request)
+        {
+            throw new UserException("Chat messages cannot be edited.");
+        }
+
+        public override Task<bool> DeleteAsync(int id)
+        {
+            throw new UserException("Chat messages cannot be deleted.");
+        }
+
         public async Task<bool> MarkAsReadAsync(int chatId)
         {
             var chat = await _context.Chats.FindAsync(chatId);
             if (chat == null || chat.IsRead)
+                return false;
+
+            if (chat.ReceiverId != CurrentUserId)
                 return false;
 
             chat.IsRead = true;
@@ -73,6 +111,9 @@ namespace Startupba.Services.Services
 
         public async Task<int> GetUnreadCountAsync(int userId)
         {
+            if (userId != CurrentUserId)
+                throw new UserException("You can only read your own unread count.");
+
             return await _context.Chats
                 .Where(c => c.ReceiverId == userId && !c.IsRead)
                 .CountAsync();
@@ -80,6 +121,9 @@ namespace Startupba.Services.Services
 
         public async Task<bool> MarkConversationAsReadAsync(int senderId, int receiverId)
         {
+            if (receiverId != CurrentUserId)
+                throw new UserException("You can only mark your own conversations as read.");
+
             var unreadMessages = await _context.Chats
                 .Where(c => c.SenderId == senderId && c.ReceiverId == receiverId && !c.IsRead)
                 .ToListAsync();
@@ -99,9 +143,11 @@ namespace Startupba.Services.Services
 
         public async Task<PagedResult<ChatResponse>> GetOptimizedAsync(ChatSearchObject search)
         {
-            var query = _context.Chats.AsQueryable();
+            search ??= new ChatSearchObject();
+            var currentUserId = CurrentUserId;
+            var query = _context.Chats
+                .Where(c => c.SenderId == currentUserId || c.ReceiverId == currentUserId);
 
-            // Apply filters without including pictures
             if (search.SenderId.HasValue)
             {
                 query = query.Where(c => c.SenderId == search.SenderId.Value);
@@ -127,23 +173,22 @@ namespace Startupba.Services.Services
                 query = query.Where(c => c.Message.Contains(search.FTS));
             }
 
-            // Get total count
             var totalCount = await query.CountAsync();
 
-            // Apply pagination
-            var items = await query
-                .OrderByDescending(c => c.CreatedAt)
-                .Skip((search.Page ?? 0) * (search.PageSize ?? 10))
-                .Take(search.PageSize ?? 10)
+            var paged = PagingHelper.ApplyPaging(
+                query.OrderByDescending(c => c.CreatedAt),
+                search);
+
+            var items = await paged
                 .Select(c => new ChatResponse
                 {
                     Id = c.Id,
                     SenderId = c.SenderId,
                     SenderName = $"{c.Sender.FirstName} {c.Sender.LastName}",
-                    SenderPicture = null, // Exclude picture for performance
+                    SenderPicture = null,
                     ReceiverId = c.ReceiverId,
                     ReceiverName = $"{c.Receiver.FirstName} {c.Receiver.LastName}",
-                    ReceiverPicture = null, // Exclude picture for performance
+                    ReceiverPicture = null,
                     Message = c.Message,
                     CreatedAt = c.CreatedAt,
                     IsRead = c.IsRead,
@@ -178,6 +223,9 @@ namespace Startupba.Services.Services
             if (entity == null)
                 return null;
 
+            if (!IsParticipant(entity, CurrentUserId))
+                return null;
+
             return MapToResponse(entity);
         }
 
@@ -185,32 +233,20 @@ namespace Startupba.Services.Services
         {
             var entity = new Chat();
             MapInsertToEntity(entity, request);
-            
+
             await BeforeInsert(entity, request);
-            
+
             _context.Add(entity);
             await _context.SaveChangesAsync();
 
-            // Reload the entity with includes
-            return await GetByIdAsync(entity.Id) ?? throw new InvalidOperationException("Failed to create chat message");
-        }
-
-        public override async Task<ChatResponse?> UpdateAsync(int id, ChatUpsertRequest request)
-        {
-            var entity = await _context.Chats.FindAsync(id);
-            if (entity == null)
-                return null;
-
-            MapUpdateToEntity(entity, request);
-            await _context.SaveChangesAsync();
-
-            // Reload the entity with includes after update
-            return await GetByIdAsync(entity.Id);
+            return await GetByIdAsync(entity.Id) ?? throw new UserException("Failed to create chat message");
         }
 
         public async Task<List<ConversationResponse>> GetConversationsAsync(int userId)
         {
-            // Get all unique users that the current user has chatted with
+            if (userId != CurrentUserId)
+                throw new UserException("You can only list your own conversations.");
+
             var conversations = await _context.Chats
                 .Where(c => c.SenderId == userId || c.ReceiverId == userId)
                 .GroupBy(c => c.SenderId == userId ? c.ReceiverId : c.SenderId)
@@ -222,7 +258,6 @@ namespace Startupba.Services.Services
                 })
                 .ToListAsync();
 
-            // Get user details for each conversation
             var userIds = conversations.Select(c => c.OtherUserId).ToList();
             var users = await _context.Users
                 .Where(u => userIds.Contains(u.Id))
@@ -231,12 +266,12 @@ namespace Startupba.Services.Services
             var result = conversations.Select(c => new ConversationResponse
             {
                 UserId = c.OtherUserId,
-                UserName = users.ContainsKey(c.OtherUserId) 
-                    ? $"{users[c.OtherUserId].FirstName} {users[c.OtherUserId].LastName}" 
+                UserName = users.ContainsKey(c.OtherUserId)
+                    ? $"{users[c.OtherUserId].FirstName} {users[c.OtherUserId].LastName}"
                     : "Unknown User",
                 UserPicture = users.ContainsKey(c.OtherUserId) ? users[c.OtherUserId].Picture : null,
-                LastMessage = c.LastMessage.Message.Length > 50 
-                    ? c.LastMessage.Message.Substring(0, 50) + "..." 
+                LastMessage = c.LastMessage.Message.Length > 50
+                    ? c.LastMessage.Message.Substring(0, 50) + "..."
                     : c.LastMessage.Message,
                 LastMessageAt = c.LastMessage.CreatedAt,
                 UnreadCount = c.UnreadCount,
@@ -250,10 +285,15 @@ namespace Startupba.Services.Services
 
         public async Task<PagedResult<ChatResponse>> GetConversationMessagesAsync(int userId, int otherUserId, int page = 0, int pageSize = 50)
         {
+            if (userId != CurrentUserId)
+                throw new UserException("You can only read your own conversations.");
+
+            var (safePage, size) = PagingHelper.Clamp(page, pageSize, defaultSize: 50);
+
             var query = _context.Chats
                 .Include(c => c.Sender)
                 .Include(c => c.Receiver)
-                .Where(c => 
+                .Where(c =>
                     (c.SenderId == userId && c.ReceiverId == otherUserId) ||
                     (c.SenderId == otherUserId && c.ReceiverId == userId));
 
@@ -261,8 +301,8 @@ namespace Startupba.Services.Services
 
             var items = await query
                 .OrderByDescending(c => c.CreatedAt)
-                .Skip(page * pageSize)
-                .Take(pageSize)
+                .Skip(safePage * size)
+                .Take(size)
                 .ToListAsync();
 
             return new PagedResult<ChatResponse>
@@ -272,4 +312,4 @@ namespace Startupba.Services.Services
             };
         }
     }
-} 
+}

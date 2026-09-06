@@ -41,6 +41,8 @@ Startup _$StartupFromJson(Map<String, dynamic> json) => Startup(
   isFavorited: json['isFavorited'] as bool? ?? false,
   coverImage: json['coverImage'] as String?,
   logoImage: json['logoImage'] as String?,
+  coverImageUrl: json['coverImageUrl'] as String?,
+  logoImageUrl: json['logoImageUrl'] as String?,
   recommendationReason: json['recommendationReason'] as String?,
 );
 
@@ -73,5 +75,7 @@ Map<String, dynamic> _$StartupToJson(Startup instance) => <String, dynamic>{
   'isFavorited': instance.isFavorited,
   'coverImage': instance.coverImage,
   'logoImage': instance.logoImage,
+  'coverImageUrl': instance.coverImageUrl,
+  'logoImageUrl': instance.logoImageUrl,
   'recommendationReason': instance.recommendationReason,
 };

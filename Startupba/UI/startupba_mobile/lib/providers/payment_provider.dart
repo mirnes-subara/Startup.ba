@@ -21,8 +21,6 @@ class PaymentProvider extends BaseProvider<Payment> {
   }) async {
     var url = "${BaseProvider.baseUrl}Payment/create-payment-intent";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-
     var body = jsonEncode({
       "startupId": startupId,
       "amount": amount,
@@ -32,7 +30,9 @@ class PaymentProvider extends BaseProvider<Payment> {
       "message": message,
     });
 
-    var response = await http.post(uri, headers: headers, body: body);
+    var response = await authorized(
+      () => http.post(uri, headers: createHeaders(), body: body),
+    );
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -42,16 +42,13 @@ class PaymentProvider extends BaseProvider<Payment> {
     }
   }
 
-  Future<Payment> confirmPayment(int paymentId, int donationId) async {
+  Future<Payment> confirmPayment(int paymentId) async {
     var url = "${BaseProvider.baseUrl}Payment/$paymentId/confirm";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
 
-    var body = jsonEncode({
-      "donationId": donationId,
-    });
-
-    var response = await http.put(uri, headers: headers, body: body);
+    var response = await authorized(
+      () => http.put(uri, headers: createHeaders(), body: jsonEncode({})),
+    );
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);

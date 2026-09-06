@@ -6,6 +6,7 @@ import 'package:startupba_desktop/providers/announcement_provider.dart';
 import 'package:startupba_desktop/screens/announcement_edit_screen.dart';
 import 'package:startupba_desktop/utils/date_format.dart';
 import 'package:startupba_desktop/widgets/app_dialogs.dart';
+import 'package:startupba_desktop/widgets/base_image.dart';
 import 'package:startupba_desktop/widgets/base_pagination.dart';
 import 'package:startupba_desktop/widgets/base_table.dart';
 import 'package:startupba_desktop/widgets/status_chip.dart';
@@ -109,6 +110,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
               child: BaseTable(
                 title: 'Announcements',
                 columns: const [
+                  BaseTableColumn(label: 'Image'),
                   BaseTableColumn(label: 'Title'),
                   BaseTableColumn(label: 'Author'),
                   BaseTableColumn(label: 'Status'),
@@ -119,6 +121,14 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                     .map(
                       (a) => DataRow(
                         cells: [
+                          DataCell(
+                            BaseImage(
+                              base64Data: a.imageData,
+                              width: 48,
+                              height: 36,
+                              placeholderIcon: Icons.campaign_outlined,
+                            ),
+                          ),
                           DataCell(Text(a.title)),
                           DataCell(Text(a.createdByUserName)),
                           DataCell(

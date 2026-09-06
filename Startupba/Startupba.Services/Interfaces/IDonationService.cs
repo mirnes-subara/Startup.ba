@@ -15,9 +15,32 @@ namespace Startupba.Services.Interfaces
         Task<DonationResponse?> CompleteAsync(int id);
 
         /// <summary>
+        /// Applies donation completion + AmountRaised in memory. Caller must SaveChanges
+        /// inside an EF transaction. Does not send notifications.
+        /// </summary>
+        Task<DonationBookingResult> ApplyCompletionAsync(int id);
+
+        /// <summary>
         /// Marks a completed donation as refunded and subtracts the amount from the startup.
         /// Startup status is left unchanged (e.g. Completed stays Completed).
         /// </summary>
         Task<DonationResponse?> RefundAsync(int id);
+
+        /// <summary>
+        /// Applies refund + AmountRaised rollback in memory. Caller must SaveChanges
+        /// inside an EF transaction.
+        /// </summary>
+        Task ApplyRefundAsync(int id);
+
+        /// <summary>
+        /// In-app + email notifications after a successful local commit.
+        /// </summary>
+        Task NotifyCompletionAsync(int donationId, bool targetReached);
+    }
+
+    public class DonationBookingResult
+    {
+        public bool Applied { get; init; }
+        public bool TargetReached { get; init; }
     }
 }

@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -6,6 +7,7 @@ using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using Startupba.Subscriber.Models;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,12 +21,20 @@ namespace Startupba.Services.Services
         private readonly INotificationService _notificationService;
         private readonly ILogger<DonationService> _logger;
         private readonly IRabbitMqPublisher _rabbitMqPublisher;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public DonationService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<DonationService> logger, IRabbitMqPublisher rabbitMqPublisher) : base(context, mapper)
+        public DonationService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<DonationService> logger,
+            IRabbitMqPublisher rabbitMqPublisher,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
             _logger = logger;
             _rabbitMqPublisher = rabbitMqPublisher;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private IQueryable<Donation> BaseQuery => _context.Donations
@@ -110,6 +120,15 @@ namespace Startupba.Services.Services
             if (entity == null)
                 return null;
 
+            var currentUserId = _httpContextAccessor.GetUserId();
+            var isAdmin = _httpContextAccessor.IsAdministrator();
+            if (!isAdmin
+                && entity.UserId != currentUserId
+                && entity.Startup?.FounderId != currentUserId)
+            {
+                return null;
+            }
+
             return MapToResponse(entity);
         }
 
@@ -129,25 +148,23 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(Donation entity, DonationUpsertRequest request)
         {
+            request.UserId = _httpContextAccessor.RequireUserId();
+            entity.UserId = request.UserId;
+
             var startup = await _context.Startups.FirstOrDefaultAsync(s => s.Id == request.StartupId);
             if (startup == null)
             {
-                throw new InvalidOperationException("Startup does not exist.");
+                throw new UserException("Startup does not exist.");
             }
 
             if (startup.StatusId != StartupStatuses.Approved)
             {
-                throw new InvalidOperationException("Donations are only possible for approved startups.");
-            }
-
-            if (!await _context.Users.AnyAsync(u => u.Id == request.UserId))
-            {
-                throw new InvalidOperationException("User does not exist.");
+                throw new UserException("Donations are only possible for approved startups.");
             }
 
             if (request.Amount <= 0)
             {
-                throw new InvalidOperationException("Donation amount must be greater than zero.");
+                throw new UserException("Donation amount must be greater than zero.");
             }
         }
 
@@ -155,11 +172,28 @@ namespace Startupba.Services.Services
         {
             base.MapInsertToEntity(entity, request);
 
-            // Donations start as Pending and are completed once the payment is confirmed
+            entity.UserId = request.UserId;
+            entity.StartupId = request.StartupId;
+            entity.Amount = request.Amount;
             entity.Status = "Pending";
             entity.CreatedAt = DateTime.UtcNow;
 
             return entity;
+        }
+
+        protected override Task BeforeUpdate(Donation entity, DonationUpsertRequest request)
+        {
+            throw new UserException("Donation amount, startup, and donor cannot be changed.");
+        }
+
+        protected override void MapUpdateToEntity(Donation entity, DonationUpsertRequest request)
+        {
+            // Financial fields and status are immutable after create.
+        }
+
+        protected override Task BeforeDelete(Donation entity)
+        {
+            throw new UserException("Donations cannot be deleted.");
         }
 
         /// <summary>
@@ -168,6 +202,54 @@ namespace Startupba.Services.Services
         /// startup when the target amount is reached.
         /// </summary>
         public async Task<DonationResponse?> CompleteAsync(int id)
+        {
+            var booking = await ApplyCompletionAsync(id);
+            await _context.SaveChangesAsync();
+
+            if (booking.Applied)
+                await NotifyCompletionAsync(id, booking.TargetReached);
+
+            var entity = await BaseQuery.FirstOrDefaultAsync(d => d.Id == id);
+            return entity == null ? null : MapToResponse(entity);
+        }
+
+        public async Task<DonationBookingResult> ApplyCompletionAsync(int id)
+        {
+            var entity = await _context.Donations
+                .Include(d => d.Startup)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (entity == null)
+                throw new NotFoundException($"Donation with ID {id} not found.");
+
+            if (string.Equals(entity.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                return new DonationBookingResult { Applied = false, TargetReached = false };
+            }
+
+            entity.Status = "Completed";
+            entity.CompletedAt = DateTime.UtcNow;
+
+            var startup = entity.Startup;
+            startup.AmountRaised += entity.Amount;
+            startup.UpdatedAt = DateTime.UtcNow;
+
+            var targetReached = startup.AmountRaised >= startup.TargetAmount
+                && startup.StatusId == StartupStatuses.Approved;
+            if (targetReached)
+            {
+                var history = StartupStatusMachine.Transition(
+                    startup,
+                    StartupStatuses.Completed,
+                    _httpContextAccessor.GetUserId(),
+                    "Funding target reached");
+                _context.StartupStatusHistories.Add(history);
+            }
+
+            return new DonationBookingResult { Applied = true, TargetReached = targetReached };
+        }
+
+        public async Task NotifyCompletionAsync(int donationId, bool targetReached)
         {
             var entity = await _context.Donations
                 .Include(d => d.User)
@@ -178,40 +260,16 @@ namespace Startupba.Services.Services
                 .Include(d => d.Startup)
                     .ThenInclude(s => s.City)
                         .ThenInclude(c => c.Country)
-                .FirstOrDefaultAsync(d => d.Id == id);
+                .FirstOrDefaultAsync(d => d.Id == donationId);
 
-            if (entity == null)
-                return null;
+            if (entity?.Startup == null)
+                return;
 
-            if (entity.Status == "Completed")
-            {
-                throw new InvalidOperationException("Donation is already completed.");
-            }
-
-            entity.Status = "Completed";
-            entity.CompletedAt = DateTime.UtcNow;
-
-            // Update the startup's raised amount
             var startup = entity.Startup;
-            startup.AmountRaised += entity.Amount;
-            startup.UpdatedAt = DateTime.UtcNow;
-
-            // Auto-complete the startup when the funding target is reached
-            bool targetReached = startup.AmountRaised >= startup.TargetAmount
-                && startup.StatusId == StartupStatuses.Approved;
-            if (targetReached)
-            {
-                startup.StatusId = StartupStatuses.Completed;
-                startup.CompletedAt = DateTime.UtcNow;
-            }
-
-            await _context.SaveChangesAsync();
-
             var donorName = entity.User != null
                 ? $"{entity.User.FirstName} {entity.User.LastName}"
                 : "An investor";
 
-            // In-app notification to the founder
             try
             {
                 await _notificationService.CreateNotificationAsync(
@@ -238,7 +296,6 @@ namespace Startupba.Services.Services
                 _logger.LogError(ex, "Failed to send donation notification");
             }
 
-            // Email notification to the founder via RabbitMQ
             if (startup.Founder != null)
             {
                 await _rabbitMqPublisher.PublishEmailAsync(new EmailNotificationDto
@@ -259,8 +316,6 @@ namespace Startupba.Services.Services
                     DonationMessage = entity.Message
                 });
             }
-
-            return MapToResponse(entity);
         }
 
         /// <summary>
@@ -269,21 +324,28 @@ namespace Startupba.Services.Services
         /// </summary>
         public async Task<DonationResponse?> RefundAsync(int id)
         {
+            await ApplyRefundAsync(id);
+            await _context.SaveChangesAsync();
+
+            var entity = await BaseQuery.FirstOrDefaultAsync(d => d.Id == id);
+            return entity == null ? null : MapToResponse(entity);
+        }
+
+        public async Task ApplyRefundAsync(int id)
+        {
             var entity = await _context.Donations
                 .Include(d => d.Startup)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException($"Donation with ID {id} not found.");
 
-            if (entity.Status == "Refunded")
-            {
-                return MapToResponse(entity);
-            }
+            if (string.Equals(entity.Status, "Refunded", StringComparison.OrdinalIgnoreCase))
+                return;
 
-            if (entity.Status != "Completed")
+            if (!string.Equals(entity.Status, "Completed", StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Only completed donations can be refunded.");
+                throw new UserException("Only completed donations can be refunded.");
             }
 
             entity.Status = "Refunded";
@@ -291,10 +353,6 @@ namespace Startupba.Services.Services
             var startup = entity.Startup;
             startup.AmountRaised = Math.Max(0, startup.AmountRaised - entity.Amount);
             startup.UpdatedAt = DateTime.UtcNow;
-            // Intentionally keep startup StatusId as-is (including Completed).
-
-            await _context.SaveChangesAsync();
-            return MapToResponse(entity);
         }
     }
 }

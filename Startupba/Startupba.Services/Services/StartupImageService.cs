@@ -1,9 +1,12 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -13,8 +16,12 @@ namespace Startupba.Services.Services
 {
     public class StartupImageService : BaseCRUDService<StartupImageResponse, StartupImageSearchObject, StartupImage, StartupImageUpsertRequest, StartupImageUpsertRequest>, IStartupImageService
     {
-        public StartupImageService(StartupbaDbContext context, IMapper mapper) : base(context, mapper)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public StartupImageService(StartupbaDbContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor)
+            : base(context, mapper)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public override async Task<PagedResult<StartupImageResponse>> GetAsync(StartupImageSearchObject search)
@@ -102,7 +109,6 @@ namespace Startupba.Services.Services
 
             await _context.SaveChangesAsync();
 
-            // Reload with relationship
             await _context.Entry(entity).Reference(si => si.Startup).LoadAsync();
 
             return MapToResponse(entity);
@@ -120,7 +126,6 @@ namespace Startupba.Services.Services
 
             await _context.SaveChangesAsync();
 
-            // Reload with relationship
             await _context.Entry(entity).Reference(si => si.Startup).LoadAsync();
 
             return MapToResponse(entity);
@@ -128,70 +133,73 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(StartupImage entity, StartupImageUpsertRequest request)
         {
-            if (!await _context.Startups.AnyAsync(s => s.Id == request.StartupId))
-            {
-                throw new InvalidOperationException("Startup does not exist.");
-            }
+            ImageMagicBytes.EnsureJpegOrPng(request.ImageData);
+            await EnsureCanManageStartupAsync(request.StartupId);
 
-            // If setting as cover, unset other covers for this startup
-            if (request.IsCover)
-            {
-                var existingCovers = await _context.StartupImages
-                    .Where(si => si.StartupId == request.StartupId && si.IsCover)
-                    .ToListAsync();
-
-                foreach (var cover in existingCovers)
-                {
-                    cover.IsCover = false;
-                }
-            }
-
-            // If setting as logo, unset other logos for this startup
-            if (request.IsLogo)
-            {
-                var existingLogos = await _context.StartupImages
-                    .Where(si => si.StartupId == request.StartupId && si.IsLogo)
-                    .ToListAsync();
-
-                foreach (var logo in existingLogos)
-                {
-                    logo.IsLogo = false;
-                }
-            }
+            await EnforceSingleCoverAndLogoAsync(request.StartupId, exceptImageId: null, request.IsCover, request.IsLogo);
         }
 
         protected override async Task BeforeUpdate(StartupImage entity, StartupImageUpsertRequest request)
         {
-            if (!await _context.Startups.AnyAsync(s => s.Id == request.StartupId))
-            {
-                throw new InvalidOperationException("Startup does not exist.");
-            }
+            ImageMagicBytes.EnsureJpegOrPng(request.ImageData);
+            await EnsureCanManageStartupAsync(entity.StartupId);
+            if (request.StartupId != entity.StartupId)
+                await EnsureCanManageStartupAsync(request.StartupId);
 
-            // If setting as cover, unset other covers for this startup (excluding current entity)
-            if (request.IsCover && !entity.IsCover)
+            // Always enforce on the TARGET startup so moving a cover/logo cannot leave two of either.
+            await EnforceSingleCoverAndLogoAsync(request.StartupId, entity.Id, request.IsCover, request.IsLogo);
+        }
+
+        protected override async Task BeforeDelete(StartupImage entity)
+        {
+            await EnsureCanManageStartupAsync(entity.StartupId);
+        }
+
+        private async Task EnsureCanManageStartupAsync(int startupId)
+        {
+            var startup = await _context.Startups.FirstOrDefaultAsync(s => s.Id == startupId);
+            if (startup == null)
+                throw new UserException("Startup does not exist.");
+
+            _httpContextAccessor.EnsureOwnerOrAdmin(startup.FounderId, "You can only manage images for your own startups.");
+        }
+
+        /// <summary>
+        /// At most one cover and one logo per startup. Applied to the target StartupId.
+        /// </summary>
+        private async Task EnforceSingleCoverAndLogoAsync(int startupId, int? exceptImageId, bool isCover, bool isLogo)
+        {
+            if (isCover)
             {
                 var existingCovers = await _context.StartupImages
-                    .Where(si => si.StartupId == request.StartupId && si.IsCover && si.Id != entity.Id)
+                    .Where(si => si.StartupId == startupId && si.IsCover && (!exceptImageId.HasValue || si.Id != exceptImageId.Value))
                     .ToListAsync();
 
                 foreach (var cover in existingCovers)
-                {
                     cover.IsCover = false;
-                }
             }
 
-            // If setting as logo, unset other logos for this startup (excluding current entity)
-            if (request.IsLogo && !entity.IsLogo)
+            if (isLogo)
             {
                 var existingLogos = await _context.StartupImages
-                    .Where(si => si.StartupId == request.StartupId && si.IsLogo && si.Id != entity.Id)
+                    .Where(si => si.StartupId == startupId && si.IsLogo && (!exceptImageId.HasValue || si.Id != exceptImageId.Value))
                     .ToListAsync();
 
                 foreach (var logo in existingLogos)
-                {
                     logo.IsLogo = false;
-                }
             }
+        }
+
+        public async Task<(byte[] Data, string ContentType)?> GetFileAsync(int id)
+        {
+            var entity = await _context.StartupImages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(si => si.Id == id && si.IsActive);
+
+            if (entity == null || entity.ImageData == null || entity.ImageData.Length == 0)
+                return null;
+
+            return (entity.ImageData, ImageMagicBytes.ContentType(entity.ImageData));
         }
     }
 }

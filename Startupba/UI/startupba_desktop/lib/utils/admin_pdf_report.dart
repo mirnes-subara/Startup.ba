@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:startupba_desktop/model/analytics.dart';
 import 'package:startupba_desktop/utils/date_format.dart';
 
@@ -91,6 +94,27 @@ Future<Uint8List> buildCategoryAnalyticsPdf(Analytics analytics) async {
     ),
   );
   return doc.save();
+}
+
+/// Writes [bytes] to a user-chosen path. Returns false if the dialog is cancelled.
+Future<bool> savePdfToFile(Uint8List bytes, String defaultFileName) async {
+  final path = await FilePicker.platform.saveFile(
+    dialogTitle: 'Save PDF',
+    fileName: defaultFileName,
+    type: FileType.custom,
+    allowedExtensions: const ['pdf'],
+  );
+  if (path == null || path.isEmpty) return false;
+  final out = path.toLowerCase().endsWith('.pdf') ? path : '$path.pdf';
+  await File(out).writeAsBytes(bytes, flush: true);
+  return true;
+}
+
+Future<void> printPdf(Uint8List bytes, String documentName) {
+  return Printing.layoutPdf(
+    onLayout: (_) async => bytes,
+    name: documentName,
+  );
 }
 
 pw.Widget _row(String label, String value) {

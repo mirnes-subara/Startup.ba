@@ -67,10 +67,21 @@ namespace Startupba.Services.Database
 
         public DateTime? ApprovedAt { get; set; }
 
+        public int? ApprovedByUserId { get; set; }
+
+        public int? RejectedByUserId { get; set; }
+
+        public DateTime? PausedAt { get; set; }
+
+        public int? PausedByUserId { get; set; }
+
         public DateTime? CompletedAt { get; set; }
 
         // Navigation properties
         public User Founder { get; set; } = null!;
+        public User? ApprovedBy { get; set; }
+        public User? RejectedBy { get; set; }
+        public User? PausedBy { get; set; }
         public Category Category { get; set; } = null!;
         public City City { get; set; } = null!;
         public StartupStatus Status { get; set; } = null!;
@@ -79,6 +90,8 @@ namespace Startupba.Services.Database
         public ICollection<Donation> Donations { get; set; } = new List<Donation>();
         public ICollection<StartupLike> StartupLikes { get; set; } = new List<StartupLike>();
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
+        public ICollection<StartupView> StartupViews { get; set; } = new List<StartupView>();
         public ICollection<BlogPost> BlogPosts { get; set; } = new List<BlogPost>();
+        public ICollection<StartupStatusHistory> StatusHistory { get; set; } = new List<StartupStatusHistory>();
     }
 }

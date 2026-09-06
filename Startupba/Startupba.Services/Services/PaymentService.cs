@@ -12,7 +12,6 @@ using Stripe;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
@@ -137,60 +136,61 @@ namespace Startupba.Services.Services
                 throw new NotFoundException($"Payment with ID {paymentId} not found.");
             }
 
-            // Verify the donation exists
-            var donation = await _context.Donations.FindAsync(request.DonationId);
+            if (!payment.DonationId.HasValue)
+            {
+                throw new UserException("Payment is not linked to a donation.");
+            }
+
+            var donation = await _context.Donations.FindAsync(payment.DonationId.Value);
             if (donation == null)
             {
-                throw new NotFoundException($"Donation with ID {request.DonationId} not found.");
+                throw new NotFoundException("Linked donation was not found.");
             }
 
-            if (payment.DonationId.HasValue && payment.DonationId.Value != request.DonationId)
+            if (!_httpContextAccessor.IsAdministrator())
             {
-                throw new UserException("Donation does not match this payment.");
+                _httpContextAccessor.EnsureOwnerOrAdmin(
+                    donation.UserId,
+                    "You are not authorized to confirm this payment.");
             }
 
-            var claimId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole("Administrator") == true;
-            if (!isAdmin)
+            if (string.Equals(payment.Status, "succeeded", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(donation.Status, "Completed", StringComparison.OrdinalIgnoreCase))
             {
-                if (!int.TryParse(claimId, out var callerId) || donation.UserId != callerId)
-                {
-                    throw new UserException("You are not authorized to confirm this payment.");
-                }
+                return await LoadPaymentResponseAsync(paymentId);
             }
 
-            // Verify the PaymentIntent actually succeeded on Stripe before completing
+            // Stripe stays outside the SQL transaction.
             StripeConfiguration.ApiKey = _stripeSecretKey;
             var paymentIntentService = new PaymentIntentService();
             var paymentIntent = await paymentIntentService.GetAsync(payment.StripePaymentIntentId);
             if (paymentIntent.Status != "succeeded")
             {
-                throw new InvalidOperationException(
+                throw new UserException(
                     $"Stripe payment is not succeeded (status: {paymentIntent.Status}).");
             }
 
-            payment.DonationId = request.DonationId;
-            payment.Status = "succeeded";
-            payment.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            // Complete the donation: updates the startup's raised amount,
-            // notifies the founder and auto-completes the startup if the target is reached
-            if (donation.Status != "Completed")
+            DonationBookingResult booking;
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                await _donationService.CompleteAsync(donation.Id);
+                payment.Status = "succeeded";
+                payment.UpdatedAt = DateTime.UtcNow;
+
+                booking = await _donationService.ApplyCompletionAsync(donation.Id);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
 
-            // Reload with relationships for the response
-            var reloaded = await _context.Payments
-                .Include(p => p.Donation)
-                    .ThenInclude(d => d!.Startup)
-                .Include(p => p.Donation)
-                    .ThenInclude(d => d!.User)
-                .FirstAsync(p => p.Id == paymentId);
+            if (booking.Applied)
+                await _donationService.NotifyCompletionAsync(donation.Id, booking.TargetReached);
 
-            return MapToResponse(reloaded);
+            return await LoadPaymentResponseAsync(paymentId);
         }
 
         public async Task<PaymentResponse> RefundPaymentAsync(int paymentId)
@@ -202,6 +202,11 @@ namespace Startupba.Services.Services
             if (payment == null)
             {
                 throw new NotFoundException($"Payment with ID {paymentId} not found.");
+            }
+
+            if (string.Equals(payment.Status, "refunded", StringComparison.OrdinalIgnoreCase))
+            {
+                return await LoadPaymentResponseAsync(paymentId);
             }
 
             if (!string.Equals(payment.Status, "succeeded", StringComparison.OrdinalIgnoreCase))
@@ -232,27 +237,44 @@ namespace Startupba.Services.Services
                 throw new UserException("Only payments with a completed donation can be refunded.");
             }
 
+            // Stripe refund stays outside the SQL transaction.
             StripeConfiguration.ApiKey = _stripeSecretKey;
+            Stripe.Refund refund;
             try
             {
                 var refundService = new RefundService();
-                var refund = await refundService.CreateAsync(new RefundCreateOptions
+                refund = await refundService.CreateAsync(new RefundCreateOptions
                 {
                     PaymentIntent = payment.StripePaymentIntentId,
                 });
-
-                payment.StripeRefundId = refund.Id;
-                payment.Status = "refunded";
-                payment.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
             }
             catch (StripeException ex)
             {
                 throw new UserException($"Stripe refund failed: {ex.Message}");
             }
 
-            await _donationService.RefundAsync(donation.Id);
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                payment.StripeRefundId = refund.Id;
+                payment.Status = "refunded";
+                payment.UpdatedAt = DateTime.UtcNow;
 
+                await _donationService.ApplyRefundAsync(donation.Id);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+
+            return await LoadPaymentResponseAsync(paymentId);
+        }
+
+        private async Task<PaymentResponse> LoadPaymentResponseAsync(int paymentId)
+        {
             var reloaded = await _context.Payments
                 .Include(p => p.Donation)
                     .ThenInclude(d => d!.Startup)
@@ -275,11 +297,27 @@ namespace Startupba.Services.Services
             if (payment == null)
                 return null;
 
+            var ownerId = payment.Donation?.UserId;
+            var currentUserId = _httpContextAccessor.GetUserId();
+            if (!_httpContextAccessor.IsAdministrator()
+                && (ownerId == null || ownerId != currentUserId))
+            {
+                return null;
+            }
+
             return MapToResponse(payment);
         }
 
         public async Task<PagedResult<PaymentResponse>> GetAsync(PaymentSearchObject search)
         {
+            search ??= new PaymentSearchObject();
+
+            // Non-admins can only list their own payments; ignore client UserId override.
+            if (!_httpContextAccessor.IsAdministrator())
+            {
+                search.UserId = _httpContextAccessor.RequireUserId();
+            }
+
             var query = _context.Payments
                 .Include(p => p.Donation)
                     .ThenInclude(d => d!.Startup)

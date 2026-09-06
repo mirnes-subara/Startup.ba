@@ -4,7 +4,9 @@ namespace Startupba.Model.Requests
 {
     public class ChatUpsertRequest
     {
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int SenderId { get; set; }
 
         [Required]
@@ -14,4 +16,4 @@ namespace Startupba.Model.Requests
         [MaxLength(1000)]
         public string Message { get; set; } = string.Empty;
     }
-} 
+}

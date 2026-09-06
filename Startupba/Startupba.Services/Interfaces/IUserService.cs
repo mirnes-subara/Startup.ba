@@ -17,5 +17,9 @@ namespace Startupba.Services.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<UserResponse?> VerifyAsync(int id);
         Task<UserResponse?> RequestVerificationAsync(int id);
+        /// <summary>
+        /// Public-safe projection of a user (no email, phone, roles, activity flags).
+        /// </summary>
+        UserResponse ToPublicProfile(UserResponse user);
     }
 }

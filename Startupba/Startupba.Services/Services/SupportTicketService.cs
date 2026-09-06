@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -6,6 +7,7 @@ using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using Startupba.Subscriber.Models;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,14 +21,22 @@ namespace Startupba.Services.Services
         private readonly INotificationService _notificationService;
         private readonly ILogger<SupportTicketService> _logger;
         private readonly IRabbitMqPublisher _rabbitMqPublisher;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private static readonly string[] StatusNames = { "Open", "Answered", "Closed" };
 
-        public SupportTicketService(StartupbaDbContext context, IMapper mapper, INotificationService notificationService, ILogger<SupportTicketService> logger, IRabbitMqPublisher rabbitMqPublisher) : base(context, mapper)
+        public SupportTicketService(
+            StartupbaDbContext context,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<SupportTicketService> logger,
+            IRabbitMqPublisher rabbitMqPublisher,
+            IHttpContextAccessor httpContextAccessor) : base(context, mapper)
         {
             _notificationService = notificationService;
             _logger = logger;
             _rabbitMqPublisher = rabbitMqPublisher;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private IQueryable<SupportTicket> BaseQuery => _context.SupportTickets
@@ -55,6 +65,12 @@ namespace Startupba.Services.Services
 
         protected override IQueryable<SupportTicket> ApplyFilter(IQueryable<SupportTicket> query, SupportTicketSearchObject search)
         {
+            if (!_httpContextAccessor.IsAdministrator())
+            {
+                var currentUserId = _httpContextAccessor.RequireUserId();
+                search.UserId = currentUserId;
+            }
+
             if (search.UserId.HasValue)
             {
                 query = query.Where(st => st.UserId == search.UserId.Value);
@@ -82,6 +98,12 @@ namespace Startupba.Services.Services
             if (entity == null)
                 return null;
 
+            if (!_httpContextAccessor.IsAdministrator()
+                && entity.UserId != _httpContextAccessor.GetUserId())
+            {
+                return null;
+            }
+
             return MapToResponse(entity);
         }
 
@@ -101,20 +123,39 @@ namespace Startupba.Services.Services
             return response;
         }
 
-        protected override async Task BeforeInsert(SupportTicket entity, SupportTicketUpsertRequest request)
+        protected override Task BeforeInsert(SupportTicket entity, SupportTicketUpsertRequest request)
         {
-            if (!await _context.Users.AnyAsync(u => u.Id == request.UserId))
-            {
-                throw new InvalidOperationException("User does not exist.");
-            }
+            request.UserId = _httpContextAccessor.RequireUserId();
+            entity.UserId = request.UserId;
+            return Task.CompletedTask;
         }
 
         protected override SupportTicket MapInsertToEntity(SupportTicket entity, SupportTicketUpsertRequest request)
         {
             base.MapInsertToEntity(entity, request);
+            entity.UserId = request.UserId;
             entity.Status = 0; // Open
             entity.CreatedAt = DateTime.UtcNow;
             return entity;
+        }
+
+        protected override Task BeforeUpdate(SupportTicket entity, SupportTicketUpsertRequest request)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.UserId, "You can only edit your own support tickets.");
+            request.UserId = entity.UserId;
+            return Task.CompletedTask;
+        }
+
+        protected override void MapUpdateToEntity(SupportTicket entity, SupportTicketUpsertRequest request)
+        {
+            base.MapUpdateToEntity(entity, request);
+            entity.UserId = request.UserId;
+        }
+
+        protected override Task BeforeDelete(SupportTicket entity)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.UserId, "You can only delete your own support tickets.");
+            return Task.CompletedTask;
         }
 
         public async Task<SupportTicketResponse?> AnswerAsync(int id, SupportTicketAnswerRequest request)
@@ -125,7 +166,7 @@ namespace Startupba.Services.Services
 
             if (entity.Status == 2)
             {
-                throw new InvalidOperationException("Cannot answer a closed ticket.");
+                throw new UserException("Cannot answer a closed ticket.");
             }
 
             entity.AdminResponse = request.AdminResponse;
@@ -174,7 +215,7 @@ namespace Startupba.Services.Services
 
             if (entity.Status == 2)
             {
-                throw new InvalidOperationException("Ticket is already closed.");
+                throw new UserException("Ticket is already closed.");
             }
 
             entity.Status = 2; // Closed

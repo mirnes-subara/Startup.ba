@@ -11,13 +11,15 @@ class ReportProvider extends BaseProvider<Report> {
 
   Future<Report> resolve(int id, int status, String? adminNote) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/resolve";
-    var response = await http.put(
-      Uri.parse(url),
-      headers: createHeaders(),
-      body: jsonEncode({
-        "status": status,
-        if (adminNote != null) "adminNote": adminNote,
-      }),
+    var response = await authorized(
+      () => http.put(
+        Uri.parse(url),
+        headers: createHeaders(),
+        body: jsonEncode({
+          "status": status,
+          if (adminNote != null) "adminNote": adminNote,
+        }),
+      ),
     );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));

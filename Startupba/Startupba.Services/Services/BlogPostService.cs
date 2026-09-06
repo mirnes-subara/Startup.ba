@@ -1,14 +1,15 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Database;
+using Startupba.Services.Helpers;
 using Startupba.Services.Interfaces;
 using MapsterMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.Services.Services
@@ -104,6 +105,8 @@ namespace Startupba.Services.Services
 
         public override async Task<BlogPostResponse> CreateAsync(BlogPostUpsertRequest request)
         {
+            request.AuthorId = _httpContextAccessor.RequireUserId();
+
             if (request.SharedFromBlogPostId.HasValue)
             {
                 var originalId = request.SharedFromBlogPostId.Value;
@@ -113,7 +116,7 @@ namespace Startupba.Services.Services
 
                 if (original == null)
                 {
-                    throw new InvalidOperationException("Original blog post does not exist or is inactive.");
+                    throw new NotFoundException("Original blog post does not exist or is inactive.");
                 }
 
                 // Always link to the root post when sharing a repost
@@ -125,14 +128,14 @@ namespace Startupba.Services.Services
                         .FirstOrDefaultAsync(bp => bp.Id == originalId && bp.IsActive);
                     if (original == null)
                     {
-                        throw new InvalidOperationException("Original blog post does not exist or is inactive.");
+                        throw new NotFoundException("Original blog post does not exist or is inactive.");
                     }
                     request.SharedFromBlogPostId = originalId;
                 }
 
                 if (original.AuthorId == request.AuthorId)
                 {
-                    throw new InvalidOperationException("You cannot share your own blog post.");
+                    throw new UserException("You cannot share your own blog post.");
                 }
 
                 var existingShare = await BaseQuery.FirstOrDefaultAsync(bp =>
@@ -175,7 +178,7 @@ namespace Startupba.Services.Services
             }
             else if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Content))
             {
-                throw new InvalidOperationException("Title and content are required.");
+                throw new UserException("Title and content are required.");
             }
 
             var entity = new BlogPost();
@@ -214,11 +217,10 @@ namespace Startupba.Services.Services
                 }
             }
 
-            var userIdClaim = _httpContextAccessor.HttpContext?.User
-                ?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(userIdClaim, out var userId))
+            var userId = _httpContextAccessor.GetUserId();
+            if (userId.HasValue)
             {
-                response.IsLiked = entity.BlogPostLikes?.Any(l => l.UserId == userId) ?? false;
+                response.IsLiked = entity.BlogPostLikes?.Any(l => l.UserId == userId.Value) ?? false;
             }
 
             return response;
@@ -226,57 +228,60 @@ namespace Startupba.Services.Services
 
         protected override async Task BeforeInsert(BlogPost entity, BlogPostUpsertRequest request)
         {
-            if (!await _context.Users.AnyAsync(u => u.Id == request.AuthorId))
-            {
-                throw new InvalidOperationException("Author does not exist.");
-            }
+            request.AuthorId = _httpContextAccessor.RequireUserId();
+            entity.AuthorId = request.AuthorId;
 
             if (request.StartupId.HasValue && !await _context.Startups.AnyAsync(s => s.Id == request.StartupId.Value))
             {
-                throw new InvalidOperationException("Startup does not exist.");
+                throw new NotFoundException("Startup does not exist.");
             }
 
             if (request.SharedFromBlogPostId.HasValue
                 && !await _context.BlogPosts.AnyAsync(bp => bp.Id == request.SharedFromBlogPostId.Value))
             {
-                throw new InvalidOperationException("Original blog post does not exist.");
+                throw new NotFoundException("Original blog post does not exist.");
             }
         }
 
         protected override async Task BeforeUpdate(BlogPost entity, BlogPostUpsertRequest request)
         {
-            if (!await _context.Users.AnyAsync(u => u.Id == request.AuthorId))
-            {
-                throw new InvalidOperationException("Author does not exist.");
-            }
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.AuthorId, "You can only edit your own blog posts.");
+            request.AuthorId = entity.AuthorId;
 
             if (request.StartupId.HasValue && !await _context.Startups.AnyAsync(s => s.Id == request.StartupId.Value))
             {
-                throw new InvalidOperationException("Startup does not exist.");
+                throw new NotFoundException("Startup does not exist.");
             }
 
             if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Content))
             {
-                throw new InvalidOperationException("Title and content are required.");
+                throw new UserException("Title and content are required.");
             }
         }
 
         protected override void MapUpdateToEntity(BlogPost entity, BlogPostUpsertRequest request)
         {
             base.MapUpdateToEntity(entity, request);
+            entity.AuthorId = request.AuthorId;
             entity.UpdatedAt = DateTime.UtcNow;
+        }
+
+        protected override Task BeforeDelete(BlogPost entity)
+        {
+            _httpContextAccessor.EnsureOwnerOrAdmin(entity.AuthorId, "You can only delete your own blog posts.");
+            return Task.CompletedTask;
         }
 
         public async Task<bool> LikeAsync(int blogPostId, int userId)
         {
             if (!await _context.BlogPosts.AnyAsync(bp => bp.Id == blogPostId))
             {
-                throw new InvalidOperationException("Blog post does not exist.");
+                throw new NotFoundException("Blog post does not exist.");
             }
 
             if (!await _context.Users.AnyAsync(u => u.Id == userId))
             {
-                throw new InvalidOperationException("User does not exist.");
+                throw new NotFoundException("User does not exist.");
             }
 
             if (await _context.BlogPostLikes.AnyAsync(l => l.BlogPostId == blogPostId && l.UserId == userId))

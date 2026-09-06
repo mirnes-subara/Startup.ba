@@ -32,6 +32,11 @@ namespace Startupba.Model.Responses
 
         public string? RejectionReason { get; set; }
 
+        public int? ApprovedByUserId { get; set; }
+        public int? RejectedByUserId { get; set; }
+        public DateTime? PausedAt { get; set; }
+        public int? PausedByUserId { get; set; }
+
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
@@ -55,9 +60,13 @@ namespace Startupba.Model.Responses
 
         // Cover image (first cover, if any)
         public byte[]? CoverImage { get; set; }
-
-        // Logo image (first logo, if any)
         public byte[]? LogoImage { get; set; }
+
+        /// <summary>
+        /// Lightweight list/detail reference: GET /StartupImage/{id}/file
+        /// </summary>
+        public string? CoverImageUrl { get; set; }
+        public string? LogoImageUrl { get; set; }
 
         /// <summary>
         /// Why this startup was recommended (set only on recommendation endpoints).

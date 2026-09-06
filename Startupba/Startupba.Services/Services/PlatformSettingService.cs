@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -48,7 +49,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.PlatformSettings.AnyAsync(ps => ps.Key == request.Key))
             {
-                throw new InvalidOperationException("A setting with this key already exists.");
+                throw new UserException("A setting with this key already exists.");
             }
         }
 
@@ -56,7 +57,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.PlatformSettings.AnyAsync(ps => ps.Key == request.Key && ps.Id != entity.Id))
             {
-                throw new InvalidOperationException("A setting with this key already exists.");
+                throw new UserException("A setting with this key already exists.");
             }
         }
 

@@ -249,6 +249,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                     )
                   : BaseImage(
                       base64Data: s.coverImage,
+                      imageUrl: s.coverImageUrl,
                       width: double.infinity,
                       height: 280,
                       borderRadius: 0,
@@ -266,7 +267,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                   // Name and status with logo
                   Row(
                     children: [
-                      if (s.logoImage != null && s.logoImage!.isNotEmpty) ...[
+                      if (s.hasLogo) ...[
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -281,6 +282,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                           ),
                           child: BaseImage(
                             base64Data: s.logoImage,
+                            imageUrl: s.logoImageUrl,
                             width: 56,
                             height: 56,
                             borderRadius: 28,

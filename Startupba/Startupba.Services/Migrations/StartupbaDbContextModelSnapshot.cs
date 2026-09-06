@@ -41,6 +41,9 @@ namespace Startupba.Services.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2229,6 +2232,9 @@ namespace Startupba.Services.Migrations
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -2257,8 +2263,17 @@ namespace Startupba.Services.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("PausedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PausedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("PlatformFeePercent")
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(1000)
@@ -2275,11 +2290,17 @@ namespace Startupba.Services.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedByUserId");
+
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("CityId");
 
                     b.HasIndex("FounderId");
+
+                    b.HasIndex("PausedByUserId");
+
+                    b.HasIndex("RejectedByUserId");
 
                     b.HasIndex("StatusId");
 
@@ -2957,6 +2978,76 @@ namespace Startupba.Services.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Startupba.Services.Database.StartupStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FromStatusId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("StartupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToStatusId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("FromStatusId");
+
+                    b.HasIndex("StartupId");
+
+                    b.HasIndex("ToStatusId");
+
+                    b.ToTable("StartupStatusHistories");
+                });
+
+            modelBuilder.Entity("Startupba.Services.Database.StartupView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastViewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StartupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("StartupId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("StartupViews");
+                });
+
             modelBuilder.Entity("Startupba.Services.Database.SupportTicket", b =>
                 {
                     b.Property<int>("Id")
@@ -3565,6 +3656,11 @@ namespace Startupba.Services.Migrations
 
             modelBuilder.Entity("Startupba.Services.Database.Startup", b =>
                 {
+                    b.HasOne("Startupba.Services.Database.User", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Startupba.Services.Database.Category", "Category")
                         .WithMany("Startups")
                         .HasForeignKey("CategoryId")
@@ -3583,17 +3679,33 @@ namespace Startupba.Services.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Startupba.Services.Database.User", "PausedBy")
+                        .WithMany()
+                        .HasForeignKey("PausedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Startupba.Services.Database.User", "RejectedBy")
+                        .WithMany()
+                        .HasForeignKey("RejectedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Startupba.Services.Database.StartupStatus", "Status")
                         .WithMany("Startups")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.Navigation("ApprovedBy");
+
                     b.Navigation("Category");
 
                     b.Navigation("City");
 
                     b.Navigation("Founder");
+
+                    b.Navigation("PausedBy");
+
+                    b.Navigation("RejectedBy");
 
                     b.Navigation("Status");
                 });
@@ -3613,6 +3725,59 @@ namespace Startupba.Services.Migrations
                 {
                     b.HasOne("Startupba.Services.Database.Startup", "Startup")
                         .WithMany("StartupLikes")
+                        .HasForeignKey("StartupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Startupba.Services.Database.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Startup");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Startupba.Services.Database.StartupStatusHistory", b =>
+                {
+                    b.HasOne("Startupba.Services.Database.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Startupba.Services.Database.StartupStatus", "FromStatus")
+                        .WithMany()
+                        .HasForeignKey("FromStatusId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Startupba.Services.Database.Startup", "Startup")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("StartupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Startupba.Services.Database.StartupStatus", "ToStatus")
+                        .WithMany()
+                        .HasForeignKey("ToStatusId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("FromStatus");
+
+                    b.Navigation("Startup");
+
+                    b.Navigation("ToStatus");
+                });
+
+            modelBuilder.Entity("Startupba.Services.Database.StartupView", b =>
+                {
+                    b.HasOne("Startupba.Services.Database.Startup", "Startup")
+                        .WithMany("StartupViews")
                         .HasForeignKey("StartupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -3710,6 +3875,10 @@ namespace Startupba.Services.Migrations
                     b.Navigation("StartupImages");
 
                     b.Navigation("StartupLikes");
+
+                    b.Navigation("StartupViews");
+
+                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("Startupba.Services.Database.StartupStatus", b =>

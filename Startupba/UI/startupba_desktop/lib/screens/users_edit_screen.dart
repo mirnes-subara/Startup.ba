@@ -203,7 +203,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'First name',
                                       ),
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'First name is required',
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
@@ -214,7 +216,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Last name',
                                       ),
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'Last name is required',
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
@@ -226,8 +230,13 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                         labelText: 'Email',
                                       ),
                                       validator: FormBuilderValidators.compose([
-                                        FormBuilderValidators.required(),
-                                        FormBuilderValidators.email(),
+                                        FormBuilderValidators.required(
+                                          errorText: 'Email is required',
+                                        ),
+                                        FormBuilderValidators.email(
+                                          errorText:
+                                              'Enter a valid email address',
+                                        ),
                                       ]),
                                     ),
                                   ),
@@ -239,7 +248,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Username',
                                       ),
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'Username is required',
+                                      ),
                                     ),
                                   ),
                                   if (!_isEdit)
@@ -252,7 +263,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                           labelText: 'Password',
                                         ),
                                         validator:
-                                            FormBuilderValidators.required(),
+                                            FormBuilderValidators.required(
+                                          errorText: 'Password is required',
+                                        ),
                                       ),
                                     ),
                                   SizedBox(
@@ -262,6 +275,11 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       initialValue: u?.phoneNumber,
                                       decoration: const InputDecoration(
                                         labelText: 'Phone',
+                                      ),
+                                      validator:
+                                          FormBuilderValidators.phoneNumber(
+                                        checkNullOrEmpty: false,
+                                        errorText: 'Enter a valid phone number',
                                       ),
                                     ),
                                   ),
@@ -277,7 +295,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Gender',
                                       ),
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'Please select a gender',
+                                      ),
                                       items: _genders
                                           .map(
                                             (g) => DropdownMenuItem(
@@ -296,7 +316,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Country',
                                       ),
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'Please select a country',
+                                      ),
                                       items: _countries
                                           .map(
                                             (c) => DropdownMenuItem(
@@ -334,7 +356,9 @@ class _UsersEditScreenState extends State<UsersEditScreen> {
                                         labelText: 'City',
                                       ),
                                       enabled: _selectedCountryId != null,
-                                      validator: FormBuilderValidators.required(),
+                                      validator: FormBuilderValidators.required(
+                                        errorText: 'Please select a city',
+                                      ),
                                       items: _cities
                                           .map(
                                             (c) => DropdownMenuItem(

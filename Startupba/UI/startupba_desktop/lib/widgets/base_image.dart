@@ -5,8 +5,23 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:startupba_desktop/theme/app_theme.dart';
 
-class BaseImage extends StatelessWidget {
+class _ImageBytesCache {
+  static const int _maxEntries = 64;
+  static final Map<String, Uint8List> _cache = <String, Uint8List>{};
+
+  static Uint8List? get(String key) => _cache[key];
+
+  static void put(String key, Uint8List bytes) {
+    if (_cache.length >= _maxEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[key] = bytes;
+  }
+}
+
+class BaseImage extends StatefulWidget {
   final String? base64Data;
+  final String? imageUrl;
   final double width;
   final double height;
   final BoxFit fit;
@@ -16,6 +31,7 @@ class BaseImage extends StatelessWidget {
   const BaseImage({
     super.key,
     this.base64Data,
+    this.imageUrl,
     this.width = 48,
     this.height = 48,
     this.fit = BoxFit.cover,
@@ -23,14 +39,36 @@ class BaseImage extends StatelessWidget {
     this.borderRadius = 8,
   });
 
-  Uint8List? _decode() {
-    if (base64Data == null || base64Data!.isEmpty) return null;
+  @override
+  State<BaseImage> createState() => _BaseImageState();
+}
+
+class _BaseImageState extends State<BaseImage> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = _decode(widget.base64Data);
+  }
+
+  @override
+  void didUpdateWidget(BaseImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.base64Data != widget.base64Data) {
+      _bytes = _decode(widget.base64Data);
+    }
+  }
+
+  Uint8List? _decode(String? data) {
+    if (data == null || data.isEmpty) return null;
+    final cached = _ImageBytesCache.get(data);
+    if (cached != null) return cached;
     try {
-      var data = base64Data!;
-      if (data.contains(',')) {
-        data = data.split(',').last;
-      }
-      return base64Decode(data);
+      var raw = data.contains(',') ? data.split(',').last : data;
+      final bytes = base64Decode(raw);
+      _ImageBytesCache.put(data, bytes);
+      return bytes;
     } catch (_) {
       return null;
     }
@@ -38,17 +76,44 @@ class BaseImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bytes = _decode();
+    Widget child;
+    final url = widget.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      child = Image.network(
+        url,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    } else if (_bytes != null) {
+      child = Image.memory(
+        _bytes!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    } else {
+      child = _placeholder();
+    }
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
+      borderRadius: BorderRadius.circular(widget.borderRadius),
       child: Container(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         color: const Color(0xFFF1F5F9),
-        child: bytes != null
-            ? Image.memory(bytes, width: width, height: height, fit: fit)
-            : Icon(placeholderIcon, color: AppColors.textMuted, size: width * 0.45),
+        child: child,
       ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Icon(
+      widget.placeholderIcon,
+      color: AppColors.textMuted,
+      size: widget.width * 0.45,
     );
   }
 }

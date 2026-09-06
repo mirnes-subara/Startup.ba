@@ -1,3 +1,4 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
@@ -83,7 +84,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Categories.AnyAsync(c => c.Name == request.Name))
             {
-                throw new InvalidOperationException("A category with this name already exists.");
+                throw new UserException("A category with this name already exists.");
             }
         }
 
@@ -91,7 +92,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Categories.AnyAsync(c => c.Name == request.Name && c.Id != entity.Id))
             {
-                throw new InvalidOperationException("A category with this name already exists.");
+                throw new UserException("A category with this name already exists.");
             }
         }
 
@@ -99,7 +100,7 @@ namespace Startupba.Services.Services
         {
             if (await _context.Startups.AnyAsync(s => s.CategoryId == entity.Id))
             {
-                throw new InvalidOperationException("Cannot delete a category that has startups. Deactivate it instead.");
+                throw new UserException("Cannot delete a category that has startups. Deactivate it instead.");
             }
         }
     }

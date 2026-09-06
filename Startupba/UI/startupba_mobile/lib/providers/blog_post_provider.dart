@@ -14,8 +14,7 @@ class BlogPostProvider extends BaseProvider<BlogPost> {
   Future<bool> like(int blogPostId) async {
     var url = "${BaseProvider.baseUrl}BlogPost/$blogPostId/like";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;
@@ -26,8 +25,7 @@ class BlogPostProvider extends BaseProvider<BlogPost> {
   Future<bool> unlike(int blogPostId) async {
     var url = "${BaseProvider.baseUrl}BlogPost/$blogPostId/like";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.delete(uri, headers: headers);
+    var response = await authorized(() => http.delete(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;

@@ -12,7 +12,9 @@ namespace Startupba.Model.Requests
         [MaxLength(4000)]
         public string Description { get; set; } = string.Empty;
 
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int FounderId { get; set; }
 
         [Required]

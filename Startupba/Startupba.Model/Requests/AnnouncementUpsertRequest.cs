@@ -16,5 +16,7 @@ namespace Startupba.Model.Requests
         public int CreatedByUserId { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public byte[]? ImageData { get; set; }
     }
 }

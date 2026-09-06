@@ -15,10 +15,12 @@ class StartupProvider extends BaseProvider<Startup> {
 
   Future<Startup> reject(int id, String reason) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/reject";
-    var response = await http.put(
-      Uri.parse(url),
-      headers: createHeaders(),
-      body: jsonEncode({"reason": reason}),
+    var response = await authorized(
+      () => http.put(
+        Uri.parse(url),
+        headers: createHeaders(),
+        body: jsonEncode({"reason": reason}),
+      ),
     );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
@@ -32,7 +34,9 @@ class StartupProvider extends BaseProvider<Startup> {
 
   Future<Startup> _action(int id, String action) async {
     var url = "${BaseProvider.baseUrl}$endpoint/$id/$action";
-    var response = await http.put(Uri.parse(url), headers: createHeaders());
+    var response = await authorized(
+      () => http.put(Uri.parse(url), headers: createHeaders()),
+    );
     if (isValidResponse(response)) {
       return fromJson(jsonDecode(response.body));
     }

@@ -2,9 +2,9 @@ using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
+using Startupba.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -16,19 +16,27 @@ namespace Startupba.WebAPI.Controllers
 
         private IStartupService StartupService => (IStartupService)_service;
 
+        [HttpPost]
+        public override async Task<StartupResponse> Create([FromBody] StartupUpsertRequest request)
+        {
+            request.FounderId = this.RequireUserId();
+            return await _crudService.CreateAsync(request);
+        }
+
+        [HttpPut("{id}")]
+        public override async Task<StartupResponse?> Update(int id, [FromBody] StartupUpsertRequest request)
+        {
+            // FounderId is enforced from the existing entity in the service
+            return await _crudService.UpdateAsync(id, request);
+        }
+
         /// <summary>
         /// Soft-deletes a startup. Only the founder may delete their own startup.
         /// </summary>
         [HttpDelete("{id}")]
         public override async Task<bool> Delete(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-            {
-                return false;
-            }
-
-            return await StartupService.DeleteOwnedAsync(id, userId);
+            return await StartupService.DeleteOwnedAsync(id, this.RequireUserId());
         }
 
         /// <summary>
@@ -38,19 +46,12 @@ namespace Startupba.WebAPI.Controllers
         [HttpGet("recommended")]
         public async Task<ActionResult<List<StartupResponse>>> GetRecommendedStartups([FromQuery] int count = 5)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-
-            var startups = await StartupService.GetRecommendedStartupsAsync(userId, count);
+            var startups = await StartupService.GetRecommendedStartupsAsync(this.RequireUserId(), count);
             return Ok(startups);
         }
 
         // ---------- Admin moderation actions ----------
 
-        /// <summary>
-        /// Admin approves a pending startup (founder gets an in-app notification and an email).
-        /// </summary>
         [HttpPut("{id}/approve")]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<StartupResponse>> Approve(int id)
@@ -61,9 +62,6 @@ namespace Startupba.WebAPI.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Admin rejects a pending startup with a reason (founder gets an in-app notification and an email).
-        /// </summary>
         [HttpPut("{id}/reject")]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<StartupResponse>> Reject(int id, [FromBody] StartupRejectRequest request)
@@ -74,9 +72,6 @@ namespace Startupba.WebAPI.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Admin pauses an approved startup.
-        /// </summary>
         [HttpPut("{id}/pause")]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<StartupResponse>> Pause(int id)
@@ -87,9 +82,6 @@ namespace Startupba.WebAPI.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Admin resumes a paused startup.
-        /// </summary>
         [HttpPut("{id}/resume")]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<StartupResponse>> Resume(int id)
@@ -102,52 +94,38 @@ namespace Startupba.WebAPI.Controllers
 
         // ---------- Likes / favorites ----------
 
-        /// <summary>
-        /// Like (recommend) a startup. Returns false if already liked.
-        /// </summary>
         [HttpPost("{id}/like")]
         public async Task<ActionResult<bool>> Like(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await StartupService.LikeAsync(id, userId));
+            return Ok(await StartupService.LikeAsync(id, this.RequireUserId()));
         }
 
-        /// <summary>
-        /// Remove a like from a startup.
-        /// </summary>
         [HttpDelete("{id}/like")]
         public async Task<ActionResult<bool>> Unlike(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await StartupService.UnlikeAsync(id, userId));
+            return Ok(await StartupService.UnlikeAsync(id, this.RequireUserId()));
         }
 
-        /// <summary>
-        /// Add a startup to the user's favorites. Returns false if already favorited.
-        /// </summary>
         [HttpPost("{id}/favorite")]
         public async Task<ActionResult<bool>> AddFavorite(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await StartupService.AddFavoriteAsync(id, userId));
+            return Ok(await StartupService.AddFavoriteAsync(id, this.RequireUserId()));
         }
 
-        /// <summary>
-        /// Remove a startup from the user's favorites.
-        /// </summary>
         [HttpDelete("{id}/favorite")]
         public async Task<ActionResult<bool>> RemoveFavorite(int id)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return Ok(await StartupService.RemoveFavoriteAsync(id, userId));
+            return Ok(await StartupService.RemoveFavoriteAsync(id, this.RequireUserId()));
+        }
+
+        /// <summary>
+        /// Records a detail-page view for the current user (deduped, 15-minute throttle).
+        /// Also recorded automatically on GET /Startup/{id}.
+        /// </summary>
+        [HttpPost("{id}/view")]
+        public async Task<ActionResult<bool>> RecordView(int id)
+        {
+            return Ok(await StartupService.RecordViewAsync(id, this.RequireUserId()));
         }
     }
 }

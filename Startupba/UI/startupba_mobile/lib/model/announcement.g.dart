@@ -11,12 +11,15 @@ Announcement _$AnnouncementFromJson(Map<String, dynamic> json) => Announcement(
   title: json['title'] as String? ?? '',
   content: json['content'] as String? ?? '',
   createdByUserId: (json['createdByUserId'] as num?)?.toInt() ?? 0,
-  createdByUserName: json['createdByUserName'] as String? ?? '',
+  createdByUserName: json['createdByUserName'] as String? ??
+      json['createdByName'] as String? ??
+      '',
   isActive: json['isActive'] as bool? ?? true,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
+  imageData: json['imageData'] as String?,
 );
 
 Map<String, dynamic> _$AnnouncementToJson(Announcement instance) =>
@@ -29,4 +32,5 @@ Map<String, dynamic> _$AnnouncementToJson(Announcement instance) =>
       'isActive': instance.isActive,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'imageData': instance.imageData,
     };

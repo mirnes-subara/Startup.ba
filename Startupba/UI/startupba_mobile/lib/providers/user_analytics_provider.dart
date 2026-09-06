@@ -14,8 +14,7 @@ class UserAnalyticsProvider extends BaseProvider<UserAnalytics> {
   Future<UserAnalytics?> getUserAnalytics() async {
     var url = "${BaseProvider.baseUrl}$endpoint";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       if (response.body.isEmpty) return null;

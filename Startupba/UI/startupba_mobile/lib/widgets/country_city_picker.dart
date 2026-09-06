@@ -149,7 +149,7 @@ class _CountryCityPickerState extends State<CountryCityPicker> {
               .toList(),
           onChanged: _onCountryChanged,
           validator: widget.required
-              ? (v) => v == null ? 'Required' : null
+              ? (v) => v == null ? 'Please select a country' : null
               : null,
         ),
         const SizedBox(height: 16),
@@ -171,7 +171,7 @@ class _CountryCityPickerState extends State<CountryCityPicker> {
                   widget.onChanged(v);
                 },
           validator: widget.required
-              ? (v) => v == null ? 'Required' : null
+              ? (v) => v == null ? 'Please select a city' : null
               : null,
         ),
       ],

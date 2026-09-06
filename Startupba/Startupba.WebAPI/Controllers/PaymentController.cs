@@ -2,9 +2,9 @@ using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
+using Startupba.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Startupba.WebAPI.Controllers
 {
@@ -25,10 +25,15 @@ namespace Startupba.WebAPI.Controllers
 
         /// <summary>
         /// Gets a list of payments with optional filtering.
+        /// Non-admins are scoped to their own payments (service enforces UserId).
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<PagedResult<PaymentResponse>>> Get([FromQuery] PaymentSearchObject search)
         {
+            search ??= new PaymentSearchObject();
+            if (!this.IsAdministrator())
+                search.UserId = this.RequireUserId();
+
             var result = await _service.GetAsync(search);
             return Ok(result);
         }
@@ -39,21 +44,9 @@ namespace Startupba.WebAPI.Controllers
         [HttpPost("create-payment-intent")]
         public async Task<ActionResult<PaymentIntentResponse>> CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
         {
-            try
-            {
-                var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(claimId, out var userId))
-                    return Unauthorized();
-
-                request.UserId = userId;
-
-                var result = await _service.CreatePaymentIntentAsync(request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            request.UserId = this.RequireUserId();
+            var result = await _service.CreatePaymentIntentAsync(request);
+            return Ok(result);
         }
 
         /// <summary>
@@ -61,17 +54,10 @@ namespace Startupba.WebAPI.Controllers
         /// and completes the donation (updates the startup's raised amount).
         /// </summary>
         [HttpPut("{id}/confirm")]
-        public async Task<ActionResult<PaymentResponse>> ConfirmPayment(int id, [FromBody] ConfirmPaymentRequest request)
+        public async Task<ActionResult<PaymentResponse>> ConfirmPayment(int id, [FromBody] ConfirmPaymentRequest? request)
         {
-            try
-            {
-                var result = await _service.ConfirmPaymentAsync(id, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var result = await _service.ConfirmPaymentAsync(id, request ?? new ConfirmPaymentRequest());
+            return Ok(result);
         }
 
         /// <summary>
@@ -94,15 +80,8 @@ namespace Startupba.WebAPI.Controllers
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<PaymentResponse>> Refund(int id)
         {
-            try
-            {
-                var result = await _service.RefundPaymentAsync(id);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message, message = ex.Message });
-            }
+            var result = await _service.RefundPaymentAsync(id);
+            return Ok(result);
         }
     }
 }

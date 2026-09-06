@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:startupba_mobile/providers/user_provider.dart';
 import 'package:startupba_mobile/theme/app_theme.dart';
+import 'package:startupba_mobile/utils/app_validators.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -73,6 +74,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             children: [
               _field(
@@ -82,7 +84,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onToggle: () =>
                     setState(() => _obscureCurrent = !_obscureCurrent),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Required' : null,
+                    AppValidators.requiredField(v, 'Current password'),
               ),
               const SizedBox(height: 16),
               _field(
@@ -90,8 +92,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 label: 'New password',
                 obscure: _obscureNew,
                 onToggle: () => setState(() => _obscureNew = !_obscureNew),
-                validator: (v) =>
-                    v == null || v.length < 4 ? 'Min 4 characters' : null,
+                validator: (v) => AppValidators.minLength(v, 4, 'New password'),
               ),
               const SizedBox(height: 16),
               _field(
@@ -100,11 +101,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 obscure: _obscureConfirm,
                 onToggle: () =>
                     setState(() => _obscureConfirm = !_obscureConfirm),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  if (v != _newCtrl.text) return 'Passwords don\'t match';
-                  return null;
-                },
+                validator: (v) =>
+                    AppValidators.passwordConfirm(v, _newCtrl.text),
               ),
               const SizedBox(height: 32),
               SizedBox(

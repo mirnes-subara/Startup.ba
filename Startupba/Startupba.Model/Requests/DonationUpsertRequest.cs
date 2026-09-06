@@ -7,7 +7,9 @@ namespace Startupba.Model.Requests
         [Required]
         public int StartupId { get; set; }
 
-        [Required]
+        /// <summary>
+        /// Set server-side from JWT. Ignored if sent by the client.
+        /// </summary>
         public int UserId { get; set; }
 
         [Required]

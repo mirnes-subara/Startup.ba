@@ -1,10 +1,11 @@
+using Startupba.Model;
 using Startupba.Model.Requests;
 using Startupba.Model.Responses;
 using Startupba.Model.SearchObjects;
 using Startupba.Services.Interfaces;
+using Startupba.WebAPI.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Startupba.WebAPI.Controllers
@@ -18,6 +19,25 @@ namespace Startupba.WebAPI.Controllers
         public ChatController(IChatService service) : base(service)
         {
             _chatService = service;
+        }
+
+        [HttpPost]
+        public override async Task<ChatResponse> Create([FromBody] ChatUpsertRequest request)
+        {
+            request.SenderId = this.RequireUserId();
+            return await _crudService.CreateAsync(request);
+        }
+
+        [HttpPut("{id}")]
+        public override Task<ChatResponse?> Update(int id, [FromBody] ChatUpsertRequest request)
+        {
+            throw new UserException("Chat messages cannot be edited.");
+        }
+
+        [HttpDelete("{id}")]
+        public override Task<bool> Delete(int id)
+        {
+            throw new UserException("Chat messages cannot be deleted.");
         }
 
         [HttpGet("optimized")]
@@ -39,20 +59,13 @@ namespace Startupba.WebAPI.Controllers
         [HttpGet("unread-count")]
         public async Task<ActionResult<int>> GetUnreadCount()
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return await _chatService.GetUnreadCountAsync(userId);
+            return await _chatService.GetUnreadCountAsync(this.RequireUserId());
         }
 
         [HttpPost("mark-conversation-read")]
         public async Task<IActionResult> MarkConversationAsRead([FromQuery] int senderId)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var receiverId))
-                return Unauthorized();
-
-            var result = await _chatService.MarkConversationAsReadAsync(senderId, receiverId);
+            var result = await _chatService.MarkConversationAsReadAsync(senderId, this.RequireUserId());
             if (!result)
                 return NotFound();
 
@@ -62,10 +75,7 @@ namespace Startupba.WebAPI.Controllers
         [HttpGet("conversations")]
         public async Task<ActionResult<List<ConversationResponse>>> GetConversations()
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return await _chatService.GetConversationsAsync(userId);
+            return await _chatService.GetConversationsAsync(this.RequireUserId());
         }
 
         [HttpGet("conversation/{otherUserId}")]
@@ -74,10 +84,7 @@ namespace Startupba.WebAPI.Controllers
             [FromQuery] int page = 0,
             [FromQuery] int pageSize = 50)
         {
-            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claimId, out var userId))
-                return Unauthorized();
-            return await _chatService.GetConversationMessagesAsync(userId, otherUserId, page, pageSize);
+            return await _chatService.GetConversationMessagesAsync(this.RequireUserId(), otherUserId, page, pageSize);
         }
     }
 }

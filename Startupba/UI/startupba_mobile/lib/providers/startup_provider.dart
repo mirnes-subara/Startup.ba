@@ -14,8 +14,7 @@ class StartupProvider extends BaseProvider<Startup> {
   Future<List<Startup>> getRecommended({int count = 5}) async {
     var url = "${BaseProvider.baseUrl}Startup/recommended?count=$count";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.get(uri, headers: headers);
+    var response = await authorized(() => http.get(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
@@ -28,8 +27,7 @@ class StartupProvider extends BaseProvider<Startup> {
   Future<bool> like(int startupId) async {
     var url = "${BaseProvider.baseUrl}Startup/$startupId/like";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;
@@ -40,8 +38,7 @@ class StartupProvider extends BaseProvider<Startup> {
   Future<bool> unlike(int startupId) async {
     var url = "${BaseProvider.baseUrl}Startup/$startupId/like";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.delete(uri, headers: headers);
+    var response = await authorized(() => http.delete(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;
@@ -52,8 +49,7 @@ class StartupProvider extends BaseProvider<Startup> {
   Future<bool> addFavorite(int startupId) async {
     var url = "${BaseProvider.baseUrl}Startup/$startupId/favorite";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.post(uri, headers: headers);
+    var response = await authorized(() => http.post(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;
@@ -64,8 +60,7 @@ class StartupProvider extends BaseProvider<Startup> {
   Future<bool> removeFavorite(int startupId) async {
     var url = "${BaseProvider.baseUrl}Startup/$startupId/favorite";
     var uri = Uri.parse(url);
-    var headers = createHeaders();
-    var response = await http.delete(uri, headers: headers);
+    var response = await authorized(() => http.delete(uri, headers: createHeaders()));
 
     if (isValidResponse(response)) {
       return jsonDecode(response.body) == true;

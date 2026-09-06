@@ -12,6 +12,7 @@ namespace Startupba.Services.Services
     /// Profile activity report for a single user: their startups and raised
     /// amounts (as a founder) plus donations, likes, favorites and community
     /// activity (as an investor / community member).
+    /// Aggregations run in SQL; only report rows are materialized.
     /// </summary>
     public class UserAnalyticsService : IUserAnalyticsService
     {
@@ -24,7 +25,17 @@ namespace Startupba.Services.Services
 
         public async Task<UserAnalyticsResponse?> GetUserAnalyticsAsync(int userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.IsVerified,
+                    u.CreatedAt
+                })
+                .FirstOrDefaultAsync();
             if (user == null)
                 return null;
 
@@ -36,69 +47,107 @@ namespace Startupba.Services.Services
                 MemberSince = user.CreatedAt
             };
 
-            // As a founder
-            var startups = await _context.Startups
-                .Include(s => s.Category)
-                .Include(s => s.Status)
-                .Include(s => s.StartupLikes)
-                .Include(s => s.Favorites)
-                .Include(s => s.Donations)
-                .Where(s => s.FounderId == userId)
-                .ToListAsync();
+            var founderStartups = _context.Startups.AsNoTracking()
+                .Where(s => s.FounderId == userId);
 
-            response.StartupsCreated = startups.Count;
-            response.StartupsApproved = startups.Count(s => s.StatusId == StartupStatuses.Approved);
-            response.StartupsCompleted = startups.Count(s => s.StatusId == StartupStatuses.Completed);
-            response.TotalRaised = startups.Sum(s => s.AmountRaised);
-            response.DonationsReceived = startups.Sum(s => s.Donations.Count(d => d.Status == "Completed"));
-            response.LikesReceived = startups.Sum(s => s.StartupLikes.Count);
-            response.FavoritesReceived = startups.Sum(s => s.Favorites.Count);
-
-            response.Startups = startups
-                .OrderByDescending(s => s.AmountRaised)
-                .Select(s => new UserStartupSummary
+            var founderStats = await founderStartups
+                .GroupBy(_ => 1)
+                .Select(g => new
                 {
-                    StartupId = s.Id,
-                    StartupName = s.Name,
-                    CategoryName = s.Category?.Name ?? "Unknown",
-                    StatusName = s.Status?.Name ?? "Unknown",
-                    TargetAmount = s.TargetAmount,
-                    AmountRaised = s.AmountRaised,
-                    FundingPercent = s.TargetAmount > 0
-                        ? Math.Round(s.AmountRaised / s.TargetAmount * 100, 2)
-                        : 0,
+                    Created = g.Count(),
+                    Approved = g.Count(s => s.StatusId == StartupStatuses.Approved),
+                    Completed = g.Count(s => s.StatusId == StartupStatuses.Completed),
+                    TotalRaised = g.Sum(s => s.AmountRaised)
+                })
+                .FirstOrDefaultAsync();
+
+            response.StartupsCreated = founderStats?.Created ?? 0;
+            response.StartupsApproved = founderStats?.Approved ?? 0;
+            response.StartupsCompleted = founderStats?.Completed ?? 0;
+            response.TotalRaised = founderStats?.TotalRaised ?? 0;
+            response.DonationsReceived = await _context.Donations.CountAsync(d =>
+                d.Status == "Completed" && d.Startup.FounderId == userId);
+            response.LikesReceived = await _context.StartupLikes.CountAsync(l => l.Startup.FounderId == userId);
+            response.FavoritesReceived = await _context.Favorites.CountAsync(f => f.Startup.FounderId == userId);
+
+            var startupRows = await founderStartups
+                .OrderByDescending(s => s.AmountRaised)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    CategoryName = s.Category != null ? s.Category.Name : "Unknown",
+                    StatusName = s.Status != null ? s.Status.Name : "Unknown",
+                    s.TargetAmount,
+                    s.AmountRaised,
                     LikeCount = s.StartupLikes.Count,
                     FavoriteCount = s.Favorites.Count
                 })
-                .ToList();
-
-            // As an investor / community member
-            var donationsMade = await _context.Donations
-                .Where(d => d.UserId == userId && d.Status == "Completed")
                 .ToListAsync();
 
-            response.DonationsMade = donationsMade.Count;
-            response.TotalDonated = donationsMade.Sum(d => d.Amount);
+            response.Startups = startupRows.Select(s => new UserStartupSummary
+            {
+                StartupId = s.Id,
+                StartupName = s.Name,
+                CategoryName = s.CategoryName,
+                StatusName = s.StatusName,
+                TargetAmount = s.TargetAmount,
+                AmountRaised = s.AmountRaised,
+                FundingPercent = s.TargetAmount > 0
+                    ? Math.Round(s.AmountRaised / s.TargetAmount * 100, 2)
+                    : 0,
+                LikeCount = s.LikeCount,
+                FavoriteCount = s.FavoriteCount
+            }).ToList();
+
+            var donationsMade = _context.Donations.AsNoTracking()
+                .Where(d => d.UserId == userId && d.Status == "Completed");
+
+            var donationStats = await donationsMade
+                .GroupBy(_ => 1)
+                .Select(g => new { Count = g.Count(), Total = g.Sum(d => d.Amount) })
+                .FirstOrDefaultAsync();
+
+            response.DonationsMade = donationStats?.Count ?? 0;
+            response.TotalDonated = donationStats?.Total ?? 0;
             response.StartupsLiked = await _context.StartupLikes.CountAsync(l => l.UserId == userId);
             response.StartupsFavorited = await _context.Favorites.CountAsync(f => f.UserId == userId);
             response.BlogPostsWritten = await _context.BlogPosts.CountAsync(bp => bp.AuthorId == userId);
             response.CommentsWritten = await _context.Comments.CountAsync(c => c.UserId == userId);
 
-            // Monthly donation activity (last 12 months)
-            var last12Months = Enumerable.Range(0, 12)
-                .Select(i => DateTime.UtcNow.AddMonths(-i))
-                .Reverse()
-                .ToList();
+            var now = DateTime.UtcNow;
+            var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var windowStart = currentMonthStart.AddMonths(-11);
 
-            response.MonthlyDonationsMade = last12Months.Select(month => new MonthlyDonationData
-            {
-                Month = month.ToString("yyyy-MM"),
-                Amount = donationsMade
-                    .Where(d => d.CreatedAt.Year == month.Year && d.CreatedAt.Month == month.Month)
-                    .Sum(d => d.Amount),
-                DonationCount = donationsMade
-                    .Count(d => d.CreatedAt.Year == month.Year && d.CreatedAt.Month == month.Month)
-            }).ToList();
+            var monthRows = await donationsMade
+                .Where(d => (d.CompletedAt ?? d.CreatedAt) >= windowStart)
+                .GroupBy(d => new
+                {
+                    Year = (d.CompletedAt ?? d.CreatedAt).Year,
+                    Month = (d.CompletedAt ?? d.CreatedAt).Month
+                })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    Amount = g.Sum(d => d.Amount),
+                    DonationCount = g.Count()
+                })
+                .ToListAsync();
+
+            response.MonthlyDonationsMade = Enumerable.Range(0, 12)
+                .Select(i =>
+                {
+                    var start = currentMonthStart.AddMonths(i - 11);
+                    var row = monthRows.FirstOrDefault(r => r.Year == start.Year && r.Month == start.Month);
+                    return new MonthlyDonationData
+                    {
+                        Month = start.ToString("yyyy-MM"),
+                        Amount = row?.Amount ?? 0,
+                        DonationCount = row?.DonationCount ?? 0
+                    };
+                })
+                .ToList();
 
             return response;
         }

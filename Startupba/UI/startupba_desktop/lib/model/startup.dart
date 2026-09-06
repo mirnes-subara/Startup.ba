@@ -30,6 +30,8 @@ class Startup {
   final int donationCount;
   final String? coverImage;
   final String? logoImage;
+  final String? coverImageUrl;
+  final String? logoImageUrl;
 
   Startup({
     this.id = 0,
@@ -58,7 +60,17 @@ class Startup {
     this.donationCount = 0,
     this.coverImage,
     this.logoImage,
+    this.coverImageUrl,
+    this.logoImageUrl,
   });
+
+  bool get hasCover =>
+      (coverImageUrl != null && coverImageUrl!.isNotEmpty) ||
+      (coverImage != null && coverImage!.isNotEmpty);
+
+  bool get hasLogo =>
+      (logoImageUrl != null && logoImageUrl!.isNotEmpty) ||
+      (logoImage != null && logoImage!.isNotEmpty);
 
   factory Startup.fromJson(Map<String, dynamic> json) =>
       _$StartupFromJson(json);

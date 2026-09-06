@@ -14,7 +14,7 @@ namespace Startupba.Model.Responses
         public decimal AverageDonation { get; set; }
 
         /// <summary>
-        /// Platform revenue = sum of (completed donations x startup fee percent).
+        /// Platform revenue = fee percent of AmountRaised, only for campaigns that reached their funding target.
         /// </summary>
         public decimal PlatformRevenue { get; set; }
 
